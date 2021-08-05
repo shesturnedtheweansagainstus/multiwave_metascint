@@ -35,6 +35,8 @@ tensorboard dev upload \
   --name "(optional) My latest experiment" \
   --description "(optional) Simple comparison of several hyperparameters" \
   --one_shot
+
+tensorboard dev delete --experiment_id EXPERIMENT_ID
 """
 
 def _bytes_feature(value):
@@ -317,12 +319,16 @@ def set_target_shape(dataset):
     return dataset.map(concat_target)
 
 def group_target_shape(dataset):
+    """
+    Formats elements in the dataset to appear in a dictionary
+    for multiple outputs.
+    """
     def group_target(train_element, target_element):
-        concat = tf.concat([target_element[1], target_element[2]], axis=-1)
         return ({"input": train_element},
 
                 {"first_photon_time": target_element[0], 
-                "total_and_energy": concat,
+                "total_energy": target_element[1],
+                "energy_share": target_element[2],
                 "primary_pos": target_element[3], 
                 "process": target_element[4]})
 
@@ -427,7 +433,6 @@ def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcode
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
         )
-
     run_name = get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
@@ -449,13 +454,13 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
 
     dataset = get_dataset(dataset_path)
     size = find_size_of_dataset(dataset)  # 7181
-    print(size)
+    print(f"Dataset size is: {size}")
     dataset = get_dataset(dataset_path)
     train_set, test_set, predict_set = split_dataset(dataset, size=size)  
 
     train_set = group_target_shape(train_set)
     test_set = group_target_shape(test_set)
-    predict_set = group_target_shape(predict_set)
+    #predict_set = group_target_shape(predict_set)
 
     train_set = train_set.repeat().batch(batchsize)  # change
     test_set = test_set.batch(1)
@@ -465,7 +470,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     steps_per_epoch = (size // batchsize) + 1
     history = train_model(train_set, model, steps_per_epoch, **kwargs)
 
-    print("\n")
+    print("\nModel Summary: \n")
     print(model.summary())
     print("\n")
     
@@ -478,35 +483,46 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
         print(history.history)
         print(eval_data)
     
-    print(f"\n\nHyperparameters: {kwargs}")
+    print(f"\n\nHyperparameters: {kwargs}\n")
 
-    # compares predictions with targets
-    """
-    space_num = 45  
-    for i in predict_set:
-        print("========")
-        predict = model(tf.expand_dims(i[0][0], axis=0), training=False)
-        print(" " * 9 + "target" + "   " + "-" * (space_num - 10) + "   " + "prediction")
-        for j in range(i[1].shape[0]):
-            target_str = str(i[1][j].numpy())
-            space_mul = space_num - len(target_str)
-            predict_str = str(predict[0][j].numpy())
-            print(f"index {j}: " + target_str + " " * space_mul + predict_str)
-        print("========")
-    """
+    _ = show_predictions(model, predict_set)
 
-    #model.save_weights(weights_path)
-    model.save(weights_path)
+    model.save(weights_path)  # use .h5 format
     pickle.dump([history.history, eval_data], open(pickle_path, "wb"))
     return (history, eval_data)
 
-def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=10000, space_num=45):
+def show_predictions(model, dataset, space_num=45, padding=20):
+    """
+    Formats and prints out a comparision of target-predictions
+    """
+
+    predict_list = []
+    labels = ["first_photon_time", "total_energy", "energy_share", "primary_pos", "process"]
+
+    for i in dataset:
+        print("===================")
+        predict = model(tf.expand_dims(i[0], axis=0), training=False)
+        print(" " * (padding + 1) + "target" + "   " + "-" * (space_num - 6) + "   " + "prediction")
+
+        for j in range(len(i[1])):  # over outputs 
+            index_name = labels[j] + " " * (padding - len(labels[j])) + ":"
+            for k in range(i[1][j].shape[0]):  # over output dim
+                target_str = str(i[1][j][k].numpy())
+                space_mul = space_num - len(target_str)
+                predict_str = str(predict[j][0][k].numpy())
+                print(f"{index_name} index {k}: " + target_str + " " * space_mul + predict_str)
+                if k == 0:
+                    index_name = " " * (padding + 1)
+        print("===================")
+        predict_list.append((i, predict))
+
+    return predict_list
+
+def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=10000, space_num=45, padding=20):
     """
     Gives comparision between target data and model predictions.
 
     """
-    #model = my_model()
-    #model.load_weights(weights_path)
     model = tf.keras.models.load_model(weights_path)
 
     dataset = get_dataset(dataset_path)
@@ -514,35 +530,15 @@ def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=10
         shuffle_size, seed=5
         ).take(predict_num)
 
-    for count, i in enumerate(predict_data):
-        if count == 1:
-            return 0
-        predict = model(tf.expand_dims(i[0], axis=0), training=False)
-        print(i)
-        print(predict)  # list of (1, dim)
+    predict_list = show_predictions(model, predict_data, space_num=space_num, padding=padding)
 
-
-    
-    predict_list = []
-    labels = ["first_photon_time", "total"]
-    for i in predict_data:
-        print("========")
-        predict = model(tf.expand_dims(i[0], axis=0), training=False)
-        print(" " * 9 + "target" + "   " + "-" * (space_num - 6) + "   " + "prediction")
-        for j in range(i[1].shape[0]):  # over outputs 
-            for k in range(i[1][j].shape[0]):  # over output dim
-                target_str = str(i[1][j][k].numpy())
-                
-
-            space_mul = space_num - len(target_str)
-            predict_str = str(predict[0][j].numpy())
-            print(f"index {j}: " + target_str + " " * space_mul + predict_str)
-        print("========")
-        predict_list.append((i, predict))
     return predict_list
     
-
 def location_types(data_path):
+    """
+    Finds the distribution of primary processess in the
+    dataset.
+    """
     data = pd.read_csv(data_path)
     counts = {"PhotoElectric":0, "Compton":0, "RayleighScattering":0}
     list_of_events = find_list_of_events(data_path)
@@ -593,12 +589,12 @@ if __name__ == "__main__":
     sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
     dataset_path = Path("/home/lei/leo/code/data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
-    #weights_path = Path("/home/lei/leo/code/data/saved_weights/my_model_weights")
-    weights_path = Path("/home/lei/leo/code/saved_weights/mymodel.h5")
+    weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with 
     pickle_path = Path("/home/lei/leo/code/data/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
 
     #_ = extract_train_data(data_path, str(dataset_path))
+
     #{"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
     
     hyper_parameters = [
@@ -609,4 +605,4 @@ if __name__ == "__main__":
         _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, **i)
     
 
-    _ = prediction_model(str(dataset_path), str(weights_path))
+    #_ = prediction_model(str(dataset_path), str(weights_path))
