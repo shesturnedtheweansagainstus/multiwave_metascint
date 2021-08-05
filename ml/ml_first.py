@@ -395,7 +395,10 @@ def my_model():  # try multiple outputs?? and remove training??
 
     total_and_energy = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
     total_and_energy = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(total_and_energy)
-    total_and_energy = tf.keras.layers.Dense(4, activation="relu", kernel_regularizer='l2', name="total_and_energy")(total_and_energy)
+    total_and_energy = tf.keras.layers.Dense(4, activation="relu", kernel_regularizer='l2')(total_and_energy)
+
+    total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(total_and_energy)
+    energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(total_and_energy)
 
     primary_and_process = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
     primary_and_process = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(primary_and_process)
@@ -403,7 +406,7 @@ def my_model():  # try multiple outputs?? and remove training??
     primary_pos = tf.keras.layers.Dense(3, activation="relu", name="primary_pos")(primary_and_process)
     process = tf.keras.layers.Dense(3, activation="softmax", name="process")(primary_and_process)
 
-    return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_and_energy, primary_pos, process])
+    return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
 
 def get_run_name(**kwargs):
     """
@@ -417,16 +420,18 @@ def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcode
     adam = tf.keras.optimizers.Adam(**kwargs)
     model.compile(
         optimizer=adam, 
-        loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_and_energy": tf.keras.losses.MeanSquaredError(),
-                "primary_pos": tf.keras.losses.MeanSquaredError(), "process": tf.keras.losses.CategoricalCrossentropy()}, 
-        metrics = {"first_photon_time": tf.keras.metrics.MeanSquaredError(),"total_and_energy": tf.keras.metrics.MeanSquaredError(),
-                   "primary_pos": tf.keras.metrics.MeanSquaredError(), "process": tf.keras.metrics.CategoricalAccuracy()}
+        loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_energy": tf.keras.losses.MeanSquaredError(),
+                "energy_share": tf.keras.losses.MeanSquaredError(), "primary_pos": tf.keras.losses.MeanSquaredError(), 
+                "process": tf.keras.losses.CategoricalCrossentropy()}, 
+        metrics = {"first_photon_time": tf.keras.metrics.MeanSquaredError(),"total_energy": tf.keras.metrics.MeanSquaredError(),
+                    "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
+                    "process": tf.keras.metrics.CategoricalAccuracy()}
         )
 
     run_name = get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
-    history = model.fit(train_set, epochs = 45, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
+    history = model.fit(train_set, epochs = 10, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
     return history
 
 def find_size_of_dataset(dataset):
@@ -459,7 +464,10 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     
     steps_per_epoch = (size // batchsize) + 1
     history = train_model(train_set, model, steps_per_epoch, **kwargs)
+
+    print("\n")
     print(model.summary())
+    print("\n")
     
     try:
         eval_data = model.evaluate(test_set)
@@ -487,7 +495,8 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
         print("========")
     """
 
-    model.save_weights(weights_path)
+    #model.save_weights(weights_path)
+    model.save(weights_path)
     pickle.dump([history.history, eval_data], open(pickle_path, "wb"))
     return (history, eval_data)
 
@@ -496,27 +505,42 @@ def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=10
     Gives comparision between target data and model predictions.
 
     """
-    model = my_model()
-    model.load_weights(weights_path)
+    #model = my_model()
+    #model.load_weights(weights_path)
+    model = tf.keras.models.load_model(weights_path)
 
     dataset = get_dataset(dataset_path)
     predict_data = dataset.shuffle(
-        shuffle_size=shuffle_size, seed=5
+        shuffle_size, seed=5
         ).take(predict_num)
 
+    for count, i in enumerate(predict_data):
+        if count == 1:
+            return 0
+        predict = model(tf.expand_dims(i[0], axis=0), training=False)
+        print(i)
+        print(predict)  # list of (1, dim)
+
+
+    
     predict_list = []
+    labels = ["first_photon_time", "total"]
     for i in predict_data:
         print("========")
         predict = model(tf.expand_dims(i[0], axis=0), training=False)
         print(" " * 9 + "target" + "   " + "-" * (space_num - 6) + "   " + "prediction")
-        for j in range(i[1].shape[0]):
-            target_str = str(i[1][j].numpy())
+        for j in range(i[1].shape[0]):  # over outputs 
+            for k in range(i[1][j].shape[0]):  # over output dim
+                target_str = str(i[1][j][k].numpy())
+                
+
             space_mul = space_num - len(target_str)
             predict_str = str(predict[0][j].numpy())
             print(f"index {j}: " + target_str + " " * space_mul + predict_str)
         print("========")
         predict_list.append((i, predict))
     return predict_list
+    
 
 def location_types(data_path):
     data = pd.read_csv(data_path)
@@ -569,21 +593,20 @@ if __name__ == "__main__":
     sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
     dataset_path = Path("/home/lei/leo/code/data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
-    weights_path = Path("/home/lei/leo/code/data/weights.tf")
+    #weights_path = Path("/home/lei/leo/code/data/saved_weights/my_model_weights")
+    weights_path = Path("/home/lei/leo/code/saved_weights/mymodel.h5")
     pickle_path = Path("/home/lei/leo/code/data/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
 
     #_ = extract_train_data(data_path, str(dataset_path))
-
-
+    #{"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
+    
     hyper_parameters = [
-        {"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":False, "name":"adam"},
-        {"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
+        {"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":False, "name":"adam"}
     ]
 
     for i in hyper_parameters:
         _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, **i)
+    
 
-
-
-
+    _ = prediction_model(str(dataset_path), str(weights_path))
