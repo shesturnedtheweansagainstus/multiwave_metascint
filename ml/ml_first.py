@@ -435,7 +435,7 @@ def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcode
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
         )
-    run_name = get_run_name(**kwargs)
+    run_name = model_version + get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
     history = model.fit(train_set, epochs = 10, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
@@ -492,11 +492,12 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     # Saves Image of the input signal for the first 
     # predict_data element and text of 
     # hyperparameters etc. 
-    run_name = get_run_name(**kwargs)
+    run_name = model_version + get_run_name(**kwargs)
 
     _ = run_name + ".txt"
     with open(text_path / _, "w") as f:
         with redirect_stdout(f):
+            print("Predictions:\n")
             _ = show_predictions(model, predict_set)
             print(f"\n\n{model.summary()}\n")
             print(f"\n\nHyperparameters: {kwargs}\n")
@@ -504,11 +505,11 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
             print(f"\n\nEval Data: {eval_data}\n")
 
     time = np.asarray([i*100e-12 for i in range(2510)])
-    plt.plot(time, _[0][:, 0])
+    plt.plot(time, _[0][0][0][:, 0])
     _ = run_name + ".png"
     plt.savefig(image_path / _)
 
-    model.save(weights_path)  # use .h5 format
+    model.save(weights_path)  # use .h5 format  FIXME: alter for different hyperparameters
     pickle.dump([history.history, eval_data], open(pickle_path, "wb"))
     return (history, eval_data)
 
@@ -617,7 +618,9 @@ if __name__ == "__main__":
     pickle_path = Path("/home/lei/leo/code/data/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
     image_path = Path("/home/lei/leo/code/data/images")
-    text_path = Path("/home/lei/leo/code/data/images/text")
+    text_path = Path("/home/lei/leo/code/data/text")
+
+    model_version = "mod1_"  # keeps track of the model design
 
     #_ = extract_train_data(data_path, str(dataset_path))
 
