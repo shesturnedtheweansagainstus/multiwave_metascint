@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 #from metascint.ray_tracing.python.data_analysis import list_of_events
 import numpy as np
 import os
+from numpy.lib.shape_base import _kron_dispatcher
 import pandas as pd
 from pathlib import Path
 from tensorflow._api.v2 import data
@@ -15,6 +16,7 @@ import tensorboard
 
 import pickle
 import datetime
+from contextlib import redirect_stdout
 
 import metascint.ray_tracing.python.data_analysis as dp
 import metascint.ray_tracing.python.vis as dpv
@@ -450,6 +452,9 @@ def find_size_of_dataset(dataset):
             break
     return count
 
+def show_out(data):
+    print(f"\n\n{data}\n\n")
+
 def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, **kwargs):
 
     dataset = get_dataset(dataset_path)
@@ -460,7 +465,6 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
 
     train_set = group_target_shape(train_set)
     test_set = group_target_shape(test_set)
-    #predict_set = group_target_shape(predict_set)
 
     train_set = train_set.repeat().batch(batchsize)  # change
     test_set = test_set.batch(1)
@@ -476,16 +480,33 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     
     try:
         eval_data = model.evaluate(test_set)
-        print(eval_data)
+        show_out(eval_data)
     except:
-        print(history.history)
+        show_out(history.history)
     else:
-        print(history.history)
-        print(eval_data)
+        show_out(eval_data)
+        show_out(history.history)
     
     print(f"\n\nHyperparameters: {kwargs}\n")
 
-    _ = show_predictions(model, predict_set)
+    # Saves Image of the input signal for the first 
+    # predict_data element and text of 
+    # hyperparameters etc. 
+    run_name = get_run_name(**kwargs)
+
+    _ = run_name + ".txt"
+    with open(text_path / _, "w") as f:
+        with redirect_stdout(f):
+            _ = show_predictions(model, predict_set)
+            print(f"\n\n{model.summary()}\n")
+            print(f"\n\nHyperparameters: {kwargs}\n")
+            print(f"\n\nHistory: {history.history}\n")
+            print(f"\n\nEval Data: {eval_data}\n")
+
+    time = np.asarray([i*100e-12 for i in range(2510)])
+    plt.plot(time, _[0][:, 0])
+    _ = run_name + ".png"
+    plt.savefig(image_path / _)
 
     model.save(weights_path)  # use .h5 format
     pickle.dump([history.history, eval_data], open(pickle_path, "wb"))
@@ -502,7 +523,7 @@ def show_predictions(model, dataset, space_num=45, padding=20):
     for i in dataset:
         print("===================")
         predict = model(tf.expand_dims(i[0], axis=0), training=False)
-        print(" " * (padding + 1) + "target" + "   " + "-" * (space_num - 6) + "   " + "prediction")
+        print(" " * (padding + 1) + "target" + "   " + "-" * (space_num - 2) + "   " + "prediction")
 
         for j in range(len(i[1])):  # over outputs 
             index_name = labels[j] + " " * (padding - len(labels[j])) + ":"
@@ -554,9 +575,12 @@ def location_types(data_path):
 
 """
 FIXME: 
-    Write code for saving data - weights and metrics
-    tensorboard
-    different designs
+    Tensorboard
+    Presentation
+    Fix latter 
+    Fix Conv + LSTM
+
+    write model.summary(), predictions, eval, loss, accuarcy to txt
 
 """
 
@@ -592,6 +616,8 @@ if __name__ == "__main__":
     weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with 
     pickle_path = Path("/home/lei/leo/code/data/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
+    image_path = Path("/home/lei/leo/code/data/images")
+    text_path = Path("/home/lei/leo/code/data/images/text")
 
     #_ = extract_train_data(data_path, str(dataset_path))
 
