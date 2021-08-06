@@ -8,6 +8,7 @@ import pandas as pd
 from pathlib import Path
 from tensorflow._api.v2 import data
 from tensorflow.python.framework.op_def_registry import get
+from tensorflow.python.keras.engine import input_layer
 from tensorflow.python.ops.gen_array_ops import size
 from tensorflow.python.ops.gen_math_ops import log, sign
 #import uproot as rt
@@ -280,7 +281,9 @@ def parse_TFR_element(element):
 
     process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
     process = tf.reshape(process, shape=[3])
+
     process = tf.cast(process, tf.float64)
+
 
     # Write function to map over and take the relevent variables
     return (signal, (first_photon_time, total_energy, energy_share, primary_gamma_pos, process))  # [11] 234 8910
@@ -373,20 +376,41 @@ def my_model():  # try multiple outputs?? and remove training??
     """
     input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
 
-    stream_one = conv_layer(input, 8, 5)  # (b, 502, 8) (dim, length)
-    stream_two = conv_layer(input, 8, 15)  # (b, 168, 8) 
+    #stream_one = conv_layer(input, 8, 5)  # (b, 502, 8) (dim, length)
+    stream_one = tf.keras.layers.Conv1D(8, 5, kernel_regularizer="l2")(input)
+    stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+    stream_one = tf.keras.layers.Activation('relu')(stream_one)
 
-    stream_one = tf.keras.layers.MaxPool1D(pool_size=3, strides=1)(stream_one)  # (b, 500, 8)
-    stream_two = tf.keras.layers.MaxPool1D(pool_size=3, strides=1)(stream_two)  # (b, 166, 8)
+    #stream_two = conv_layer(input, 8, 15)  # (b, 168, 8) 
+    stream_two = tf.keras.layers.Conv1D(8, 15, kernel_regularizer="l2")(input)
+    stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+    stream_two = tf.keras.layers.Activation('relu')(stream_two)
+
+    stream_one = tf.keras.layers.MaxPool1D(pool_size=10, strides=2)(stream_one)  # (b, 500, 8)
+    stream_two = tf.keras.layers.MaxPool1D(pool_size=10, strides=2)(stream_two)  # (b, 166, 8)
 
     stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
     stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
 
-    stream_one = conv_layer(input, 4, 5)  # (b, 100, 4) 
-    stream_two = conv_layer(input, 6, 5)  # (b, 34, 6)
+    #stream_one = conv_layer(input, 4, 5)  # (b, 100, 4) 
+    stream_one = tf.keras.layers.Conv1D(4, 5, kernel_regularizer="l2")(stream_one)
+    stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+    stream_one = tf.keras.layers.Activation('relu')(stream_one)
 
-    stream_one = conv_layer(input, 4, 5)  # (b, 20, 4) 
-    stream_two = conv_layer(input, 4, 5)  # (b, 7, 4)
+    #stream_two = conv_layer(input, 6, 5)  # (b, 34, 6)
+    stream_two = tf.keras.layers.Conv1D(6, 5, kernel_regularizer="l2")(stream_two)
+    stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+    stream_two = tf.keras.layers.Activation('relu')(stream_two)
+
+    #stream_one = conv_layer(input, 4, 5)  # (b, 20, 4) 
+    stream_one = tf.keras.layers.Conv1D(4, 5, kernel_regularizer="l2")(stream_one)
+    stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+    stream_one = tf.keras.layers.Activation('relu')(stream_one)
+
+    #stream_two = conv_layer(input, 4, 5)  # (b, 7, 4)
+    stream_two = tf.keras.layers.Conv1D(4, 5, kernel_regularizer="l2")(stream_two)
+    stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+    stream_two = tf.keras.layers.Activation('relu')(stream_two)
 
     stream_one = tf.keras.layers.MaxPool1D(pool_size=5, strides=1)(stream_one)  # (b, 16, 4)
     stream_two = tf.keras.layers.MaxPool1D(pool_size=2, strides=1)(stream_two)  # (b, 6, 4)
@@ -398,18 +422,22 @@ def my_model():  # try multiple outputs?? and remove training??
     out = tf.keras.layers.Flatten()(out)
     out = tf.keras.layers.Dropout(0.5)(out)
 
-    first_photon_time = tf.keras.layers.Dense(20, activation="relu", kernel_regularizer='l2')(out)
-    first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(first_photon_time)
+    out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
+    out = tf.keras.layers.Dense(1024, activation="tanh", kernel_regularizer='l2')(out)
+    out = tf.keras.layers.Dropout(0.5)(out)
+    out = tf.keras.layers.Dense(512, activation="relu", kernel_regularizer="l2")(out)
+    out =  tf.keras.layers.Dense(256, activation="relu", kernel_regularizer="l2")(out)
 
-    total_and_energy = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
-    total_and_energy = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(total_and_energy)
-    total_and_energy = tf.keras.layers.Dense(4, activation="relu", kernel_regularizer='l2')(total_and_energy)
+    first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
+
+    total_and_energy = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
+    total_and_energy = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(total_and_energy)
 
     total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(total_and_energy)
     energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(total_and_energy)
 
-    primary_and_process = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
-    primary_and_process = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(primary_and_process)
+    primary_and_process = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
+    primary_and_process = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(primary_and_process)
 
     primary_pos = tf.keras.layers.Dense(3, activation="relu", name="primary_pos")(primary_and_process)
     process = tf.keras.layers.Dense(3, activation="softmax", name="process")(primary_and_process)
@@ -424,7 +452,7 @@ def get_run_name(**kwargs):
     name = "".join([f"{key}{kwargs[key]}_" for key in kwargs.keys()])
     return name[:-1]
 
-def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcoded optimizer type
+def train_model(train_set, model, steps_per_epoch, epochs, **kwargs):  # FIXME: hardcoded optimizer type
     adam = tf.keras.optimizers.Adam(**kwargs)
     model.compile(
         optimizer=adam, 
@@ -438,7 +466,7 @@ def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcode
     run_name = model_version + get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
-    history = model.fit(train_set, epochs = 10, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
+    history = model.fit(train_set, epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
     return history
 
 def find_size_of_dataset(dataset):
@@ -455,7 +483,7 @@ def find_size_of_dataset(dataset):
 def show_out(data):
     print(f"\n\n{data}\n\n")
 
-def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, **kwargs):
+def train_and_test_model(dataset_path, weights_path, pickle_path, epochs=15, batchsize=32, **kwargs):
 
     dataset = get_dataset(dataset_path)
     size = find_size_of_dataset(dataset)  # 7181
@@ -472,7 +500,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     model = my_model()
     
     steps_per_epoch = (size // batchsize) + 1
-    history = train_model(train_set, model, steps_per_epoch, **kwargs)
+    history = train_model(train_set, model, steps_per_epoch, epochs, **kwargs)
 
     print("\nModel Summary: \n")
     print(model.summary())
@@ -497,6 +525,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     _ = run_name + ".txt"
     with open(text_path / _, "w") as f:
         with redirect_stdout(f):
+            print(f"Model Version: {model_version}")
             print("Predictions:\n")
             _ = show_predictions(model, predict_set)
             print(f"\n\n{model.summary()}\n")
@@ -507,7 +536,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     time = np.asarray([i*100e-12 for i in range(2510)])
     plt.plot(time, _[0][0][0][:, 0])
     _ = run_name + ".png"
-    plt.savefig(image_path / _)
+    plt.savefig(image_path / _, dpi=1000)
 
     model.save(weights_path)  # use .h5 format  FIXME: alter for different hyperparameters
     pickle.dump([history.history, eval_data], open(pickle_path, "wb"))
@@ -573,15 +602,16 @@ def location_types(data_path):
             continue
     return counts
 
-
 """
 FIXME: 
-    Tensorboard
     Presentation
     Fix latter 
     Fix Conv + LSTM
 
-    write model.summary(), predictions, eval, loss, accuarcy to txt
+    TODO: Write presentation
+          Seperate Models to seperate file
+          Mod1/2?
+          
 
 """
 
@@ -614,24 +644,23 @@ if __name__ == "__main__":
     sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
     dataset_path = Path("/home/lei/leo/code/data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
-    weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with 
+    weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
     pickle_path = Path("/home/lei/leo/code/data/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
     image_path = Path("/home/lei/leo/code/data/images")
     text_path = Path("/home/lei/leo/code/data/text")
 
-    model_version = "mod1_"  # keeps track of the model design
+    model_version = "mod2_"  # keeps track of the model design
 
     #_ = extract_train_data(data_path, str(dataset_path))
 
     #{"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
     
     hyper_parameters = [
-        {"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":False, "name":"adam"}
+        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam"},
+        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam"},
     ]
 
     for i in hyper_parameters:
         _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, **i)
     
-
-    #_ = prediction_model(str(dataset_path), str(weights_path))

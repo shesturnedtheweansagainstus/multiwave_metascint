@@ -50,3 +50,6 @@ def my_model():  # try multiple outputs?? and remove training??
 
     return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
 """
+
+#mod2_
+
