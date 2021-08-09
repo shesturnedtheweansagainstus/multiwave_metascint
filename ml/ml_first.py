@@ -375,7 +375,7 @@ def get_run_name(**kwargs):
     name = "".join([f"{key}{kwargs[key]}_" for key in kwargs.keys()])
     return name[:-1]
 
-def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcoded optimizer type
+def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME: hardcoded optimizer type
     epochs = kwargs.pop("epochs")
     adam = tf.keras.optimizers.Adam(**kwargs)
     model.compile(
@@ -387,7 +387,6 @@ def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcode
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
         )
-    run_name = model.name + get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
     history = model.fit(train_set, epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
@@ -421,12 +420,13 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
     train_set = train_set.repeat().batch(batchsize)  # change
     test_set = test_set.batch(1)
 
-    model = MyModel()
-    model_version = model.name
+    _ = MyModel()
+    model = _.model()
+    model_version = _.name
     run_name = model_version + get_run_name(**kwargs)
 
     steps_per_epoch = (size // batchsize) + 1
-    history = train_model(train_set, model, steps_per_epoch, **kwargs)
+    history = train_model(train_set, model, steps_per_epoch, run_name, **kwargs)
 
     print("\nModel Summary: \n")
     print(model.summary())
@@ -528,17 +528,10 @@ def location_types(data_path):
     return counts
 
 """
-FIXME: 
-    Presentation
-    Fix latter 
-    Fix Conv + LSTM
-
-    TODO: Write presentation
-          Seperate Models to seperate file
-          Mod1/2?
-          Change GitHub login
-          FIX DATA: time and pos, reduce impact of total
-          Generate more data
+TODO: 
+    Generate more data
+    Finish presentation
+    Tune Mod3 - dropout!! 
           
 
 """
@@ -567,7 +560,7 @@ log_path = Path(
 
 
 if __name__ == "__main__":
-    # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342}
+    # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342} and proportion of compton is 0.67457535723
     data_path = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-06-17_11:21:17.csv")  
     sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
     dataset_path = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
@@ -579,12 +572,10 @@ if __name__ == "__main__":
     text_path = Path("/home/lei/leo/code/data/text")
 
     #_ = extract_train_data(data_path, str(dataset_path))
-
-    #{"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
     
     hyper_parameters = [
-        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20},
-        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20}
+        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":10},
+        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":10}
     ]
 
     for i in hyper_parameters:
