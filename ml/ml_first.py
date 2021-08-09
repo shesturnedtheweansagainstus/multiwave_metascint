@@ -24,6 +24,9 @@ import metascint.ray_tracing.python.vis as dpv
 import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
+os.chdir("/home/lei/leo/code/ml")
+from models import Mod1 as MyModel  # KEY: fixes which model in models to train
+
 """
 TensorBoard:  (command line)
 
@@ -472,8 +475,10 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, epochs=15, bat
     train_set = train_set.repeat().batch(batchsize)  # change
     test_set = test_set.batch(1)
 
-    model = my_model()
-    
+    model = MyModel()
+    model_version = model.name
+    run_name = model_version + get_run_name(**kwargs)
+
     steps_per_epoch = (size // batchsize) + 1
     history = train_model(train_set, model, steps_per_epoch, epochs, **kwargs)
 
@@ -495,8 +500,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, epochs=15, bat
     # Saves Image of the input signal for the first 
     # predict_data element and text of 
     # hyperparameters etc. 
-    run_name = model_version + get_run_name(**kwargs)
-
+    
     _ = run_name + ".txt"
     with open(text_path / _, "w") as f:
         with redirect_stdout(f):
@@ -586,6 +590,9 @@ FIXME:
     TODO: Write presentation
           Seperate Models to seperate file
           Mod1/2?
+          Change GitHub login
+          FIX DATA: time and pos, reduce impact of total
+          Generate more data
           
 
 """
@@ -624,8 +631,6 @@ if __name__ == "__main__":
     log_path = Path("/home/lei/leo/code/data/logs/fit")
     image_path = Path("/home/lei/leo/code/data/images")
     text_path = Path("/home/lei/leo/code/data/text")
-
-    model_version = "mod2_"  # keeps track of the model design
 
     #_ = extract_train_data(data_path, str(dataset_path))
 
