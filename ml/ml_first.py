@@ -25,7 +25,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod1 as MyModel  # KEY: fixes which model in models to train
+from models import Mod3 as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)
@@ -45,6 +45,7 @@ tensorboard dev upload \
 tensorboard dev delete --experiment_id EXPERIMENT_ID
 """
 
+# dataset
 def _bytes_feature(value):
     """Returns a bytes_list from a string / byte."""
     if isinstance(value, type(tf.constant(0))): # if value ist tensor
@@ -110,6 +111,7 @@ def find_list_of_events(path):
 
 def find_location_of_events(sorted_data_path, list_of_events):
     """
+    Trying to speed up dataset writing
     Might work?? Depends on .csv being sorted by runID.
     """
     start_line = {}
@@ -271,20 +273,21 @@ def parse_TFR_element(element):
 
     first_photon_time = tf.io.parse_tensor(data["first_photon_time"], out_type=tf.float64)
     first_photon_time = tf.reshape(first_photon_time, shape=[1])
+    first_photon_time = first_photon_time * 1e11  # in 1e-11 sec
 
     total_energy = data["total_energy"]
     total_energy = tf.reshape(total_energy, shape=[1])
     total_energy = tf.cast(total_energy, tf.float64)
+    total_energy = total_energy * 0.01  # in 100 units
  
-    energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)
-    energy_share = tf.reshape(energy_share, shape=[3])
+    energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
+    energy_share = tf.reshape(energy_share, shape=[3])  # in %
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
 
     process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
     process = tf.reshape(process, shape=[3])
-
     process = tf.cast(process, tf.float64)
 
 
@@ -317,6 +320,7 @@ def select_relevent_var(relevent_var):
 
 def set_target_shape(dataset):
     """
+    REDUNDANT
     Concats target variables to one target vector
     """
     def concat_target(train_element, target_element):
@@ -345,7 +349,7 @@ def group_target_shape(dataset):
 def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=10000, predict_size=10):  
     """
     Extracts the train/test datasets; val later
-    shuffle_size > size
+    Try to have shuffle_size > size
     """
     assert train_split <= 1
     
@@ -361,67 +365,8 @@ def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=100
     
     return train_ds, test_ds, predict_ds
 
-def conv_layer(input, filters, kernel_size, kernel_regularizer='l2'):
-    """
-    Alter to tune batch norm
-    """
-    out = tf.keras.layers.Conv1D(
-        filters, kernel_size, kernel_regularizer=kernel_regularizer
-        )(input)
-    out = tf.keras.layers.BatchNormalization()(out)  #axis=-1
-    out = tf.keras.layers.Activation('relu')(out)
-    return out
 
-def my_model():  # try multiple outputs?? and remove training??
-    
-    #For hyperparameters, return a tensorflow model
-    #FIXME: make filters etc variable
-    
-    input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
-
-    stream_one = conv_layer(input, 8, 5)  # (b, 502, 8) (dim, length)
-    stream_two = conv_layer(input, 8, 15)  # (b, 168, 8) 
-
-    stream_one = tf.keras.layers.MaxPool1D(pool_size=3, strides=1)(stream_one)  # (b, 500, 8)
-    stream_two = tf.keras.layers.MaxPool1D(pool_size=3, strides=1)(stream_two)  # (b, 166, 8)
-
-    stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
-    stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
-
-    stream_one = conv_layer(input, 4, 5)  # (b, 100, 4) 
-    stream_two = conv_layer(input, 6, 5)  # (b, 34, 6)
-
-    stream_one = conv_layer(input, 4, 5)  # (b, 20, 4) 
-    stream_two = conv_layer(input, 4, 5)  # (b, 7, 4)
-
-    stream_one = tf.keras.layers.MaxPool1D(pool_size=5, strides=1)(stream_one)  # (b, 16, 4)
-    stream_two = tf.keras.layers.MaxPool1D(pool_size=2, strides=1)(stream_two)  # (b, 6, 4)
-
-    out = tf.concat([stream_two, stream_two], axis=-2)  # (b, 22, 4)
-
-    #out = tf.keras.layers.GRU(40, kernel_regularizer="l2", recurrent_regularizer="l2", bias_regularizer="l1")(out)  # (b, 40)
-    #out = tf.keras.layers.GRU(40, kernel_regularizer="l2", recurrent_regularizer="l2", bias_regularizer="l1")(out)  # (b, 40)
-    out = tf.keras.layers.Flatten()(out)
-    out = tf.keras.layers.Dropout(0.5)(out)
-
-    first_photon_time = tf.keras.layers.Dense(20, activation="relu", kernel_regularizer='l2')(out)
-    first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(first_photon_time)
-
-    total_and_energy = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
-    total_and_energy = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(total_and_energy)
-    total_and_energy = tf.keras.layers.Dense(4, activation="relu", kernel_regularizer='l2')(total_and_energy)
-
-    total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(total_and_energy)
-    energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(total_and_energy)
-
-    primary_and_process = tf.keras.layers.Dense(30, activation="relu", kernel_regularizer='l2')(out)
-    primary_and_process = tf.keras.layers.Dense(15, activation="relu", kernel_regularizer='l2')(primary_and_process)
-
-    primary_pos = tf.keras.layers.Dense(3, activation="relu", name="primary_pos")(primary_and_process)
-    process = tf.keras.layers.Dense(3, activation="softmax", name="process")(primary_and_process)
-
-    return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
-
+# training
 def get_run_name(**kwargs):
     """
     Generates a run name for given hyperparameters to log on 
@@ -430,7 +375,8 @@ def get_run_name(**kwargs):
     name = "".join([f"{key}{kwargs[key]}_" for key in kwargs.keys()])
     return name[:-1]
 
-def train_model(train_set, model, steps_per_epoch, epochs, **kwargs):  # FIXME: hardcoded optimizer type
+def train_model(train_set, model, steps_per_epoch, **kwargs):  # FIXME: hardcoded optimizer type
+    epochs = kwargs.pop("epochs")
     adam = tf.keras.optimizers.Adam(**kwargs)
     model.compile(
         optimizer=adam, 
@@ -441,7 +387,7 @@ def train_model(train_set, model, steps_per_epoch, epochs, **kwargs):  # FIXME: 
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
         )
-    run_name = model_version + get_run_name(**kwargs)
+    run_name = model.name + get_run_name(**kwargs)
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
     history = model.fit(train_set, epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
@@ -461,7 +407,7 @@ def find_size_of_dataset(dataset):
 def show_out(data):
     print(f"\n\n{data}\n\n")
 
-def train_and_test_model(dataset_path, weights_path, pickle_path, epochs=15, batchsize=32, **kwargs):
+def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, **kwargs):
 
     dataset = get_dataset(dataset_path)
     size = find_size_of_dataset(dataset)  # 7181
@@ -480,7 +426,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, epochs=15, bat
     run_name = model_version + get_run_name(**kwargs)
 
     steps_per_epoch = (size // batchsize) + 1
-    history = train_model(train_set, model, steps_per_epoch, epochs, **kwargs)
+    history = train_model(train_set, model, steps_per_epoch, **kwargs)
 
     print("\nModel Summary: \n")
     print(model.summary())
@@ -624,10 +570,10 @@ if __name__ == "__main__":
     # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342}
     data_path = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-06-17_11:21:17.csv")  
     sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
-    dataset_path = Path("/home/lei/leo/code/data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
+    dataset_path = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
     weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
-    pickle_path = Path("/home/lei/leo/code/data/out_data")
+    pickle_path = Path("/home/lei/leo/code/data/misc/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
     image_path = Path("/home/lei/leo/code/data/images")
     text_path = Path("/home/lei/leo/code/data/text")
@@ -637,10 +583,10 @@ if __name__ == "__main__":
     #{"learning_rate":0.001, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-05, "amsgrad":True, "name":"adam"},
     
     hyper_parameters = [
-        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam"},
-        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam"},
+        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20},
+        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20}
     ]
 
     for i in hyper_parameters:
-        _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, epochs=40, **i)
+        _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, **i)
     
