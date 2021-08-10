@@ -334,6 +334,7 @@ def group_target_shape(dataset):
     for multiple outputs.
     """
     def group_target(train_element, target_element):
+        """
         return ({"input": train_element},
 
                 {"first_photon_time": target_element[0], 
@@ -341,7 +342,12 @@ def group_target_shape(dataset):
                 "energy_share": target_element[2],
                 "primary_pos": target_element[3], 
                 "process": target_element[4]})
-
+        """
+        return ({"input": train_element},
+                {"first_photon_time": target_element[0], 
+                "total_energy": target_element[1],
+                "energy_share": target_element[2],
+                "process": target_element[4]})
     return dataset.map(group_target)
 
 def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=10000, predict_size=10):  
@@ -472,7 +478,9 @@ def show_predictions(model, dataset, space_num=45, padding=20):
     """
 
     predict_list = []
-    labels = ["first_photon_time", "total_energy", "energy_share", "primary_pos", "process"]
+    #labels = ["first_photon_time", "total_energy", "energy_share", "primary_pos", "process"]
+    labels = ["first_photon_time", "total_energy", "energy_share", "process"]
+
 
     for i in dataset:
         print("===================")
