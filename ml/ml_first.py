@@ -22,7 +22,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod4a as MyModel  # KEY: fixes which model in models to train
+from models import Mod5a as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)
@@ -290,7 +290,8 @@ def parse_TFR_element(element):
 
 
     # Write function to map over and take the relevent variables
-    return (signal, (first_photon_time, total_energy, energy_share, primary_gamma_pos, process))  # [11] 234 8910
+    #return (signal, (first_photon_time, total_energy, energy_share, primary_gamma_pos, process))  # [11] 234 8910
+    return (signal, (first_photon_time, total_energy, energy_share, process))  # [11] 234 8910
 
 def get_dataset(filename):
   dataset = tf.data.TFRecordDataset(filename)
@@ -347,7 +348,7 @@ def group_target_shape(dataset):
                 {"first_photon_time": target_element[0], 
                 "total_energy": target_element[1],
                 "energy_share": target_element[2],
-                "process": target_element[4]})
+                "process": target_element[3]})
     return dataset.map(group_target)
 
 def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=10000, predict_size=10):  
@@ -382,6 +383,7 @@ def get_run_name(**kwargs):
 def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME: hardcoded optimizer type
     epochs = kwargs.pop("epochs")
     adam = tf.keras.optimizers.Adam(**kwargs)
+    """
     model.compile(
         optimizer=adam, 
         loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_energy": tf.keras.losses.MeanSquaredError(),
@@ -390,6 +392,14 @@ def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME
         metrics = {"first_photon_time": tf.keras.metrics.MeanSquaredError(),"total_energy": tf.keras.metrics.MeanSquaredError(),
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
+        )
+    """
+    model.compile(
+        optimizer=adam, 
+        loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_energy": tf.keras.losses.MeanSquaredError(),
+                "energy_share": tf.keras.losses.MeanSquaredError(), "process": tf.keras.losses.CategoricalCrossentropy()}, 
+        metrics = {"first_photon_time": tf.keras.metrics.MeanSquaredError(),"total_energy": tf.keras.metrics.MeanSquaredError(),
+                    "energy_share": tf.keras.metrics.MeanSquaredError(), "process": tf.keras.metrics.CategoricalAccuracy()}
         )
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
