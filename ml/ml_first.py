@@ -1,6 +1,4 @@
-# Set up new conda leo_env on the server
 import matplotlib.pyplot as plt
-#from metascint.ray_tracing.python.data_analysis import list_of_events
 import numpy as np
 import os
 from numpy.lib.shape_base import _kron_dispatcher
@@ -11,7 +9,6 @@ from tensorflow.python.framework.op_def_registry import get
 from tensorflow.python.keras.engine import input_layer
 from tensorflow.python.ops.gen_array_ops import size
 from tensorflow.python.ops.gen_math_ops import log, sign
-#import uproot as rt
 import tensorflow as tf
 import tensorboard
 
@@ -285,6 +282,7 @@ def parse_TFR_element(element):
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
+    primary_gamma_pos = tf.concat([(primary_gamma_pos[:2] / 3.2) * 100, primary_gamma_pos[2]], axis=-1)  # scale x,y to %
 
     process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
     process = tf.reshape(process, shape=[3])
@@ -456,6 +454,7 @@ def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, 
             print(f"\n\n{model.summary()}\n")
             print(f"\n\nHyperparameters: {kwargs}\n")
             print(f"\n\nHistory: {history.history}\n")
+            print(f"\n\n Display Labels: {model.metrics_names}")
             print(f"\n\nEval Data: {eval_data}\n")
 
     time = np.asarray([i*100e-12 for i in range(2510)])
