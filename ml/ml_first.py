@@ -25,7 +25,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod3 as MyModel  # KEY: fixes which model in models to train
+from models import Mod4a as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)
@@ -389,7 +389,7 @@ def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME
         )
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
-    history = model.fit(train_set, epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
+    history = model.fit(train_set, epochs=epochs, verbose=2, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
     return history
 
 def find_size_of_dataset(dataset):
@@ -532,7 +532,7 @@ TODO:
     Generate more data
     Finish presentation
     Tune Mod3 - dropout!! 
-          
+          https://www.tensorflow.org/tensorboard/hyperparameter_tuning_with_hparams
 
 """
 
@@ -574,8 +574,7 @@ if __name__ == "__main__":
     #_ = extract_train_data(data_path, str(dataset_path))
     
     hyper_parameters = [
-        {"learning_rate":0.005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":10},
-        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":10}
+        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":30}
     ]
 
     for i in hyper_parameters:
