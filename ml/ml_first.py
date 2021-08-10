@@ -282,7 +282,7 @@ def parse_TFR_element(element):
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
-    primary_gamma_pos = tf.concat([(primary_gamma_pos[:2] / 3.2) * 100, primary_gamma_pos[2]], axis=-1)  # scale x,y to %
+    primary_gamma_pos = tf.concat([(primary_gamma_pos[:2] / 3.2) * 100, tf.reshape(primary_gamma_pos[2], [1])], axis=-1)  # scale x,y to %
 
     process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
     process = tf.reshape(process, shape=[3])

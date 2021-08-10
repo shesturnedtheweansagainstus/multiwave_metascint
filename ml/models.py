@@ -291,8 +291,7 @@ class Mod4():
     
 class Mod4a():  
     """
-    Testing Mod4 with different rates; changed all 
-    activations to relu.
+    Changing dropout layout and testing with different rates.
     """
 
     def __init__(self):
@@ -313,8 +312,8 @@ class Mod4a():
         stream_one = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_one)   
         stream_two = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_two)  
 
-        stream_one = tf.keras.layers.Dropout(0.6)(stream_one)
-        stream_two = tf.keras.layers.Dropout(0.6)(stream_two)
+        stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
+        stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
         stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
@@ -324,11 +323,12 @@ class Mod4a():
         stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
         stream_two = tf.keras.layers.Activation('relu')(stream_two)
 
-        stream_one = tf.keras.layers.Dropout(0.6)(stream_one)
-        stream_two = tf.keras.layers.Dropout(0.6)(stream_two)
-
         stream_one = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_one)  
         stream_two = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_two)
+
+        # new position
+        stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
+        stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
         stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
@@ -345,20 +345,20 @@ class Mod4a():
         out = tf.keras.layers.Flatten()(out)
 
         out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
-        out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
-        out = tf.keras.layers.Dropout(0.5)(out)  # try
+        out = tf.keras.layers.Dense(1024, activation="tanh", kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.5)(out)
         out = tf.keras.layers.Dense(512, activation="relu", kernel_regularizer="l2")(out)
         out =  tf.keras.layers.Dense(256, activation="relu", kernel_regularizer="l2")(out)
 
         first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
 
-        total_and_energy = tf.keras.layers.Dense(32, activation="relu", kernel_regularizer='l2')(out)
+        total_and_energy = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
         total_and_energy = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(total_and_energy)
 
         total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(total_and_energy)
         energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(total_and_energy)
 
-        primary_and_process = tf.keras.layers.Dense(32, activation="relu", kernel_regularizer='l2')(out)
+        primary_and_process = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
         primary_and_process = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(primary_and_process)
 
         primary_pos = tf.keras.layers.Dense(3, activation="relu", name="primary_pos")(primary_and_process)
