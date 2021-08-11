@@ -548,8 +548,9 @@ def location_types(data_path):
 TODO: 
     Generate more data
     Finish presentation
-    Tune Mod3 - dropout!! 
-          https://www.tensorflow.org/tensorboard/hyperparameter_tuning_with_hparams
+    Build new designs - read!
+    
+    https://www.tensorflow.org/tensorboard/hyperparameter_tuning_with_hparams
 
 """
 

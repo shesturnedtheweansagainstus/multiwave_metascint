@@ -424,10 +424,10 @@ class Mod5():
 
         out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
         out = tf.keras.layers.Dense(1024, activation="tanh", kernel_regularizer='l2')(out)
-        out = tf.keras.layers.Dropout(0.4)(out)
+        out = tf.keras.layers.Dropout(0.45)(out)
         out = tf.keras.layers.Dense(512, activation="relu", kernel_regularizer="l2")(out)
         out =  tf.keras.layers.Dense(256, activation="tanh", kernel_regularizer="l2")(out)
-        out = tf.keras.layers.Dropout(0.4)(out)
+        out = tf.keras.layers.Dropout(0.45)(out)
         out = tf.keras.layers.Dense(128, activation="relu", kernel_regularizer="l2")(out)
 
         first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
@@ -492,13 +492,16 @@ class Mod5a():
         out = tf.concat([stream_two, stream_two], axis=-2)  
         out = tf.keras.layers.Flatten()(out)
 
-        out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)  # BATCH NORM??, changed dense + dropout
         out = tf.keras.layers.Dense(1024, activation="tanh", kernel_regularizer='l2')(out)
-        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.BatchNormalization()(out)
+        out = tf.keras.layers.Dropout(0.4)(out)  
         out = tf.keras.layers.Dense(512, activation="relu", kernel_regularizer="l2")(out)
-        out =  tf.keras.layers.Dense(256, activation="tanh", kernel_regularizer="l2")(out)
-        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.Dense(256, activation="tanh", kernel_regularizer="l2")(out)
+        out = tf.keras.layers.BatchNormalization()(out)
+        out = tf.keras.layers.Dropout(0.4)(out)
         out = tf.keras.layers.Dense(128, activation="relu", kernel_regularizer="l2")(out)
+        out = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer='l2')(out)
 
         first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
         total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(out)
