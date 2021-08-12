@@ -22,7 +22,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod5a as MyModel  # KEY: fixes which model in models to train
+from models import Mod6 as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)

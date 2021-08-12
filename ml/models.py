@@ -509,3 +509,77 @@ class Mod5a():
         process = tf.keras.layers.Dense(3, activation="softmax", name="process")(out)
 
         return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
+
+
+class Mod6():  
+    """
+    Added more maxpool in conv1D stages to mod2.
+    """
+
+    def __init__(self):
+        self.name = "mod6_"
+
+    def model(self):
+
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+
+        stream_one = tf.keras.layers.Conv1D(8, 4, kernel_regularizer="l2")(input)
+        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+        stream_one = tf.keras.layers.Activation('relu')(stream_one)
+
+        stream_two = tf.keras.layers.Conv1D(8, 16, kernel_regularizer="l2")(input)
+        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+        stream_two = tf.keras.layers.Activation('relu')(stream_two)
+
+        stream_one = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_one)   
+        stream_two = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_two)  
+
+        stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
+        stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
+
+        stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
+        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+        stream_one = tf.keras.layers.Activation('relu')(stream_one)
+
+        stream_two = tf.keras.layers.Conv1D(6, 4, kernel_regularizer="l2")(stream_two)
+        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+        stream_two = tf.keras.layers.Activation('relu')(stream_two)
+
+        stream_one = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_one)  
+        stream_two = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_two)
+
+        stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
+        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
+        stream_one = tf.keras.layers.Activation('relu')(stream_one)
+
+        stream_two = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_two)
+        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
+        stream_two = tf.keras.layers.Activation('relu')(stream_two)
+
+        stream_one = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_one)  
+        stream_two = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_two)  
+
+        out = tf.concat([stream_two, stream_two], axis=-2)  
+        out = tf.keras.layers.Flatten()(out)
+        out = tf.keras.layers.Dropout(0.4)(out)
+
+        out = tf.keras.layers.Dense(1024, activation="relu", kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1024, activation="tanh", kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.4)(out)
+        out = tf.keras.layers.Dense(512, activation="relu", kernel_regularizer="l2")(out)
+        out =  tf.keras.layers.Dense(256, activation="relu", kernel_regularizer="l2")(out)
+
+        first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
+
+        total_and_energy = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
+        total_and_energy = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(total_and_energy)
+
+        total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(total_and_energy)
+        energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(total_and_energy)
+
+        primary_and_process = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
+        primary_and_process = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(primary_and_process)
+
+        process = tf.keras.layers.Dense(3, activation="softmax", name="process")(primary_and_process)
+
+        return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
