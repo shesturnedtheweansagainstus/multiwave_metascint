@@ -65,22 +65,22 @@ def parse_TFR_element(element):
 
     first_photon_time = tf.io.parse_tensor(data["first_photon_time"], out_type=tf.float64)
     first_photon_time = tf.reshape(first_photon_time, shape=[1])
-    first_photon_time = first_photon_time * 1e11  # in 1e-11 sec
+    first_photon_time = first_photon_time * 1e10  # in 1e-11 sec
 
     total_energy = data["total_energy"]
     total_energy = tf.reshape(total_energy, shape=[1])
     total_energy = tf.cast(total_energy, tf.float64)
-    total_energy = total_energy * 0.01  # in 100 units
+    #total_energy = total_energy * 0.01  # in 100 units
  
     energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
-    energy_share = tf.reshape(energy_share, shape=[3])  # in %
+    energy_share = tf.reshape(energy_share, shape=[3])  
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
     primary_gamma_pos = tf.concat([(primary_gamma_pos[:2] / 3.2) * 100, tf.reshape(primary_gamma_pos[2], [1])], axis=-1)  # scale x,y to %
 
     process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
-    process = tf.reshape(process, shape=[3])
+    process = tf.reshape(process, shape=[2])
     process = tf.cast(process, tf.float64)
 
 
@@ -88,8 +88,8 @@ def parse_TFR_element(element):
     #return (signal, (first_photon_time, total_energy, energy_share, primary_gamma_pos, process))  # [11] 234 8910
     return (signal, (first_photon_time, total_energy, energy_share, process))  # [11] 234 8910
 
-def get_dataset(filename):
-  dataset = tf.data.TFRecordDataset(filename)
+def get_dataset(filenames):
+  dataset = tf.data.TFRecordDataset(filenames)
   dataset = dataset.map(parse_TFR_element)
   return dataset
 
@@ -215,12 +215,12 @@ def find_size_of_dataset(dataset):
 def show_out(data):
     print(f"\n\n{data}\n\n")
 
-def train_and_test_model(dataset_path, weights_path, pickle_path, batchsize=32, **kwargs):
+def train_and_test_model(dataset_paths, weights_path, pickle_path, batchsize=32, **kwargs):
 
-    dataset = get_dataset(dataset_path)
+    dataset = get_dataset(dataset_paths)
     size = find_size_of_dataset(dataset)  # 7181
     print(f"Dataset size is: {size}")
-    dataset = get_dataset(dataset_path)
+    dataset = get_dataset(dataset_paths)
     train_set, test_set, predict_set = split_dataset(dataset, size=size)  
 
     train_set = group_target_shape(train_set)
@@ -344,6 +344,7 @@ TODO:
     Generate more data
     Finish presentation
     Build new designs - read!
+    evergy sharing
     
     https://www.tensorflow.org/tensorboard/hyperparameter_tuning_with_hparams
 
@@ -373,10 +374,9 @@ log_path = Path(
 
 
 if __name__ == "__main__":
-    # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342} and proportion of compton is 0.67457535723
-    data_path = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-06-17_11:21:17.csv")  
-    sorted_data_path = Path("/home/lei/leo/code/data/sorted_metascint_type_2_2021-06-17_11:21:17.csv")
-    dataset_path = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
+    
+    dataset_paths = ["/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
+                     "/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-08-11_17:23:00.tfrecords"]
 
     weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
     pickle_path = Path("/home/lei/leo/code/data/misc/out_data")
@@ -384,12 +384,11 @@ if __name__ == "__main__":
     image_path = Path("/home/lei/leo/code/data/images")
     text_path = Path("/home/lei/leo/code/data/text")
 
-    #_ = extract_train_data(data_path, str(dataset_path))
     
     hyper_parameters = [
-        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":30}
+        {"learning_rate":0.0005, "beta_1":0.8, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20}
     ]
 
     for i in hyper_parameters:
-        _ = train_and_test_model(str(dataset_path), weights_path, pickle_path, **i)
+        _ = train_and_test_model(dataset_paths, weights_path, pickle_path, **i)
     

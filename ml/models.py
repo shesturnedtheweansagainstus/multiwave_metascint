@@ -534,8 +534,8 @@ class Mod6():
         stream_one = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_one)   
         stream_two = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_two)  
 
-        stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
-        stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
+        stream_one = tf.keras.layers.Dropout(0.6)(stream_one)
+        stream_two = tf.keras.layers.Dropout(0.6)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
         stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
@@ -547,6 +547,9 @@ class Mod6():
 
         stream_one = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_one)  
         stream_two = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_two)
+
+        stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
+        stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
         stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1

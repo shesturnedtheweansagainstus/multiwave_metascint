@@ -146,8 +146,9 @@ def extract_time_energy(time, signal, parameters, circuit_path):
         )
     return signal_b1, signal_b2
 
-def extract_target(hits:dp.HitsData):
+def extract_target_v1(hits:dp.HitsData):
     """
+    OLD
     We use the number of photons as a measure of energy.
     I assume all photons have exactly one interaction.
 
@@ -185,6 +186,45 @@ def extract_target(hits:dp.HitsData):
 
     return first_photon_time, total_energy, energy_share, primary_gamma_pos, process
 
+def extract_target(hits:dp.HitsData):
+    """
+    
+    We use Lei's energy sharing function. and combine Compton and Ray
+
+    0->Others, 1-> Plastic, 2->Crystal,
+
+    0->PhotoElectric, 1->Compton, 2->RayleighScattering
+
+    should package them all up then choose which ones in the tf.dataset
+    """
+
+    if hits.photon_hits.shape[0] == 0:
+        return None
+
+    first_photon_time = np.array([
+        hits.photon_hits.sort_values("time").iloc[0]["time"] - (hits.run_id + 1)  # starts each event at 0s
+        ])
+
+    energy = dp.ParticleAnalysis(hits).energy_share()
+    total_energy = energy.sum()
+    energy_share = np.zeros([3])
+    for i in range(3):
+        energy_share[i] = energy[i]
+    energy_share = energy_share / total_energy  # try for now with out % scale
+
+    primary_gamma_pos = np.asarray(hits.hits[
+        hits.hits["parentID"] == 0
+    ].sort_values("time").iloc[0][["posX", "posY", "posZ"]], dtype=np.float64)  # could normalize
+
+    processNames = ['PhotoElectric', 'Compton', 'RayleighScattering']
+    process = hits.hits[hits.hits["parentID"] == 0].sort_values("time").iloc[0]["processName"]
+    process = np.asarray([
+        1 if process == i else 0 for i in processNames
+    ])
+    process = np.array([process[0], process[1] + process[2]])  # combines the Compton and Ray
+
+    return first_photon_time, total_energy, energy_share, primary_gamma_pos, process
+
 def extract_train_data(data_path, dataset_path):
     """
     Take a .csv of gate simulations (using standard mixed block) and 
@@ -219,8 +259,6 @@ def extract_train_data(data_path, dataset_path):
 
         writer.write(out.SerializeToString())
         count += 1
-        if count == 7419:  # temp
-            break
 
     writer.close()
     print(f"Wrote {count} elements to TFRecord")
@@ -234,6 +272,7 @@ if __name__ == '__main__':
     data_path_1 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-11_17:23:00.csv")
     dataset_path_1 = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-08-11_17:23:00.tfrecords")
 
+    _ = extract_train_data(data_path_0, str(dataset_path_0))
     _ = extract_train_data(data_path_1, str(dataset_path_1))
 
 
