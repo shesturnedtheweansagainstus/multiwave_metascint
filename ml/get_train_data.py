@@ -46,7 +46,7 @@ def parse_single_input(
     features = {
         "signal": _bytes_feature(serialize_array(signal)),
         "first_photon_time": _bytes_feature(serialize_array(first_photon_time)),
-        "total_energy": _int64_feature(total_energy),
+        "total_energy": _bytes_feature(serialize_array(total_energy)),
         "energy_share": _bytes_feature(serialize_array(energy_share)),
         "primary_gamma_pos": _bytes_feature(serialize_array(primary_gamma_pos)),
         "process": _bytes_feature(serialize_array(process))
@@ -200,6 +200,8 @@ def extract_target(hits:dp.HitsData):
 
     if hits.photon_hits.shape[0] == 0:
         return None
+    if hits.hits[hits.hits["parentID"] == 0].shape == 0:
+        return None
 
     first_photon_time = np.array([
         hits.photon_hits.sort_values("time").iloc[0]["time"] - (hits.run_id + 1)  # starts each event at 0s
@@ -209,8 +211,12 @@ def extract_target(hits:dp.HitsData):
     total_energy = energy.sum()
     energy_share = np.zeros([3])
     for i in range(3):
-        energy_share[i] = energy[i]
+        try:
+            energy_share[i] = energy[i]
+        except:
+            continue
     energy_share = energy_share / total_energy  # try for now with out % scale
+    total_energy = np.array([total_energy])
 
     primary_gamma_pos = np.asarray(hits.hits[
         hits.hits["parentID"] == 0
@@ -267,10 +273,10 @@ def extract_train_data(data_path, dataset_path):
 if __name__ == '__main__':
     # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342} and proportion of compton is 0.67457535723
     data_path_0 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-06-17_11:21:17.csv")  
-    dataset_path_0 = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords")
+    dataset_path_0 = Path("/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
     data_path_1 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-11_17:23:00.csv")
-    dataset_path_1 = Path("/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-08-11_17:23:00.tfrecords")
+    dataset_path_1 = Path("/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords")
 
     _ = extract_train_data(data_path_0, str(dataset_path_0))
     _ = extract_train_data(data_path_1, str(dataset_path_1))

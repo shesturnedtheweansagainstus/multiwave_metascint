@@ -52,7 +52,7 @@ def parse_TFR_element(element):
     features = {
         "signal": tf.io.FixedLenFeature([], tf.string),
         "first_photon_time": tf.io.FixedLenFeature([], tf.string),
-        "total_energy": tf.io.FixedLenFeature([], tf.int64),
+        "total_energy": tf.io.FixedLenFeature([], tf.string),
         "energy_share": tf.io.FixedLenFeature([], tf.string),
         "primary_gamma_pos": tf.io.FixedLenFeature([], tf.string),
         "process": tf.io.FixedLenFeature([], tf.string)
@@ -67,10 +67,8 @@ def parse_TFR_element(element):
     first_photon_time = tf.reshape(first_photon_time, shape=[1])
     first_photon_time = first_photon_time * 1e10  # in 1e-11 sec
 
-    total_energy = data["total_energy"]
+    total_energy = tf.io.parse_tensor(data["total_energy"], out_type=tf.float64)
     total_energy = tf.reshape(total_energy, shape=[1])
-    total_energy = tf.cast(total_energy, tf.float64)
-    #total_energy = total_energy * 0.01  # in 100 units
  
     energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
     energy_share = tf.reshape(energy_share, shape=[3])  
@@ -375,8 +373,8 @@ log_path = Path(
 
 if __name__ == "__main__":
     
-    dataset_paths = ["/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
-                     "/home/lei/leo/code/data/train_data/test_7_metascint_type_2_2021-08-11_17:23:00.tfrecords"]
+    dataset_paths = ["/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
+                     "/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords"]
 
     weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
     pickle_path = Path("/home/lei/leo/code/data/misc/out_data")

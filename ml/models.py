@@ -506,7 +506,7 @@ class Mod5a():
         first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
         total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(out)
         energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name='energy_share')(out)
-        process = tf.keras.layers.Dense(3, activation="softmax", name="process")(out)
+        process = tf.keras.layers.Dense(2, activation="softmax", name="process")(out)
 
         return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
 
@@ -583,6 +583,6 @@ class Mod6():
         primary_and_process = tf.keras.layers.Dense(32, activation="tanh", kernel_regularizer='l2')(out)
         primary_and_process = tf.keras.layers.Dense(16, activation="relu", kernel_regularizer='l2')(primary_and_process)
 
-        process = tf.keras.layers.Dense(3, activation="softmax", name="process")(primary_and_process)
+        process = tf.keras.layers.Dense(2, activation="softmax", name="process")(primary_and_process)
 
         return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
