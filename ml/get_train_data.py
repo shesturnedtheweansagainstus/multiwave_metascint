@@ -286,5 +286,4 @@ if __name__ == '__main__':
 
     #_ = extract_train_data(data_path_0, str(dataset_path_0))
     #_ = extract_train_data(data_path_1, str(dataset_path_1))
-
     #_ = extract_train_data(data_path_2, str(dataset_path_2))

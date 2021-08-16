@@ -146,7 +146,7 @@ def group_target_shape(dataset):
                 "process": target_element[3]})
     return dataset.map(group_target)
 
-def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=15000, predict_size=10):  
+def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=25000, predict_size=20):  
     """
     Extracts the train/test datasets; val later
     Try to have shuffle_size > size
@@ -308,7 +308,7 @@ def show_predictions(model, dataset, space_num=45, padding=20):
 
     return predict_list
 
-def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=15000, space_num=45, padding=20):
+def prediction_model(dataset_path, weights_path, predict_num=20, shuffle_size=25000, space_num=45, padding=20):
     """
     Gives comparision between target data and model predictions.
 
