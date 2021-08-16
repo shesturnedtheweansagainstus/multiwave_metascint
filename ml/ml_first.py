@@ -22,7 +22,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod6 as MyModel  # KEY: fixes which model in models to train
+from models import Mod8 as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)
@@ -65,13 +65,15 @@ def parse_TFR_element(element):
 
     first_photon_time = tf.io.parse_tensor(data["first_photon_time"], out_type=tf.float64)
     first_photon_time = tf.reshape(first_photon_time, shape=[1])
-    first_photon_time = first_photon_time * 1e10  # in 1e-11 sec
+    first_photon_time = first_photon_time * 1e11  # in 1e-11 sec
 
     total_energy = tf.io.parse_tensor(data["total_energy"], out_type=tf.float64)
     total_energy = tf.reshape(total_energy, shape=[1])
+    total_energy = total_energy * 100
  
     energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
     energy_share = tf.reshape(energy_share, shape=[3])  
+    energy_share = energy_share * 100
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
@@ -144,7 +146,7 @@ def group_target_shape(dataset):
                 "process": target_element[3]})
     return dataset.map(group_target)
 
-def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=10000, predict_size=10):  
+def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=15000, predict_size=10):  
     """
     Extracts the train/test datasets; val later
     Try to have shuffle_size > size
@@ -192,7 +194,9 @@ def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME
         loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_energy": tf.keras.losses.MeanSquaredError(),
                 "energy_share": tf.keras.losses.MeanSquaredError(), "process": tf.keras.losses.CategoricalCrossentropy()}, 
         metrics = {"first_photon_time": tf.keras.metrics.MeanSquaredError(),"total_energy": tf.keras.metrics.MeanSquaredError(),
-                    "energy_share": tf.keras.metrics.MeanSquaredError(), "process": tf.keras.metrics.CategoricalAccuracy()}
+                    "energy_share": tf.keras.metrics.MeanSquaredError(), "process": tf.keras.metrics.CategoricalAccuracy()},
+        loss_weights = {"first_photon_time": 1, "total_energy": 1,
+                        "energy_share": 1, "process": 4}
         )
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
@@ -213,7 +217,7 @@ def find_size_of_dataset(dataset):
 def show_out(data):
     print(f"\n\n{data}\n\n")
 
-def train_and_test_model(dataset_paths, weights_path, pickle_path, batchsize=32, **kwargs):
+def train_and_test_model(dataset_paths, weights_path, pickle_path, batchsize=64, **kwargs):
 
     dataset = get_dataset(dataset_paths)
     size = find_size_of_dataset(dataset)  # 7181
@@ -288,7 +292,7 @@ def show_predictions(model, dataset, space_num=45, padding=20):
     for i in dataset:
         print("===================")
         predict = model(tf.expand_dims(i[0], axis=0), training=False)
-        print(" " * (padding + 1) + "target" + "   " + "-" * (space_num - 2) + "   " + "prediction")
+        print(" " * (padding + 2) + "target" + "   " + "-" * (space_num - 3) + "   " + "prediction")
 
         for j in range(len(i[1])):  # over outputs 
             index_name = labels[j] + " " * (padding - len(labels[j])) + ":"
@@ -304,7 +308,7 @@ def show_predictions(model, dataset, space_num=45, padding=20):
 
     return predict_list
 
-def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=10000, space_num=45, padding=20):
+def prediction_model(dataset_path, weights_path, predict_num=10, shuffle_size=15000, space_num=45, padding=20):
     """
     Gives comparision between target data and model predictions.
 
@@ -374,7 +378,8 @@ log_path = Path(
 if __name__ == "__main__":
     
     dataset_paths = ["/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
-                     "/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords"]
+                     "/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords",
+                     "/home/lei/leo/code/data/train_data/train_type_2_2021-08-13_21:54:24.tfrecords"]
 
     weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
     pickle_path = Path("/home/lei/leo/code/data/misc/out_data")
@@ -384,7 +389,7 @@ if __name__ == "__main__":
 
     
     hyper_parameters = [
-        {"learning_rate":0.0005, "beta_1":0.8, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20}
+        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20}
     ]
 
     for i in hyper_parameters:

@@ -198,10 +198,12 @@ def extract_target(hits:dp.HitsData):
     should package them all up then choose which ones in the tf.dataset
     """
 
+    """
     if hits.photon_hits.shape[0] == 0:
         return None
     if hits.hits[hits.hits["parentID"] == 0].shape == 0:
         return None
+    """
 
     first_photon_time = np.array([
         hits.photon_hits.sort_values("time").iloc[0]["time"] - (hits.run_id + 1)  # starts each event at 0s
@@ -215,7 +217,7 @@ def extract_target(hits:dp.HitsData):
             energy_share[i] = energy[i]
         except:
             continue
-    energy_share = energy_share / total_energy  # try for now with out % scale
+    #energy_share = energy_share / total_energy  # try for now with out % scale
     total_energy = np.array([total_energy])
 
     primary_gamma_pos = np.asarray(hits.hits[
@@ -253,11 +255,12 @@ def extract_train_data(data_path, dataset_path):
         runID, time, signal = find_naive_pulse(hits)
         
         #first_photon_time, total_energy, energy_share, primary_gamma_pos, process = extract_target(hits)
-        targets = extract_target(hits)
-        if targets == None:
+        try:
+            targets = extract_target(hits)
+        except:
             continue
-        else:
-            first_photon_time, total_energy, energy_share, primary_gamma_pos, process = targets
+        
+        first_photon_time, total_energy, energy_share, primary_gamma_pos, process = targets
 
         out = parse_single_input(
             signal, first_photon_time, total_energy, energy_share, primary_gamma_pos, process
@@ -278,7 +281,10 @@ if __name__ == '__main__':
     data_path_1 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-11_17:23:00.csv")
     dataset_path_1 = Path("/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords")
 
-    _ = extract_train_data(data_path_0, str(dataset_path_0))
-    _ = extract_train_data(data_path_1, str(dataset_path_1))
+    data_path_2 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-13_21:54:24.csv")
+    dataset_path_2 = Path("/home/lei/leo/code/data/train_data/train_type_2_2021-08-13_21:54:24.tfrecords")
 
+    #_ = extract_train_data(data_path_0, str(dataset_path_0))
+    #_ = extract_train_data(data_path_1, str(dataset_path_1))
 
+    #_ = extract_train_data(data_path_2, str(dataset_path_2))
