@@ -374,7 +374,6 @@ log_path = Path(
 )
 """
 
-
 if __name__ == "__main__":
     
     dataset_paths = ["/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
