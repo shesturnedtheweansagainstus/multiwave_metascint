@@ -217,12 +217,11 @@ def extract_target(hits:dp.HitsData):
             energy_share[i] = energy[i]
         except:
             continue
-    #energy_share = energy_share / total_energy  # try for now with out % scale
     total_energy = np.array([total_energy])
 
     primary_gamma_pos = np.asarray(hits.hits[
         hits.hits["parentID"] == 0
-    ].sort_values("time").iloc[0][["posX", "posY", "posZ"]], dtype=np.float64)  # could normalize
+    ].sort_values("time").iloc[0][["posX", "posY", "posZ"]], dtype=np.float64)  
 
     processNames = ['PhotoElectric', 'Compton', 'RayleighScattering']
     process = hits.hits[hits.hits["parentID"] == 0].sort_values("time").iloc[0]["processName"]
@@ -233,7 +232,7 @@ def extract_target(hits:dp.HitsData):
 
     return first_photon_time, total_energy, energy_share, primary_gamma_pos, process
 
-def extract_train_data(data_path, dataset_path):
+def extract_train_data(data_path, dataset_path, end=25000, bin_width=100e-12, step_num=2500):
     """
     Take a .csv of gate simulations (using standard mixed block) and 
     outputs a TFrecord file of (input, target) tuples.
@@ -252,7 +251,7 @@ def extract_train_data(data_path, dataset_path):
         #hits = extract_event(i, data_path, list_of_events)
         hits = dp.HitsData(i, 0, data[data["runID"] == i], metascint_config=block)
         print([count, i])
-        runID, time, signal = find_naive_pulse(hits)
+        runID, time, signal = find_naive_pulse(hits, bin_width=bin_width, step_num=step_num)
         
         #first_photon_time, total_energy, energy_share, primary_gamma_pos, process = extract_target(hits)
         try:
@@ -269,6 +268,9 @@ def extract_train_data(data_path, dataset_path):
         writer.write(out.SerializeToString())
         count += 1
 
+        if count == end:
+            break
+
     writer.close()
     print(f"Wrote {count} elements to TFRecord")
     return count
@@ -284,6 +286,10 @@ if __name__ == '__main__':
     data_path_2 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-13_21:54:24.csv")
     dataset_path_2 = Path("/home/lei/leo/code/data/train_data/train_type_2_2021-08-13_21:54:24.tfrecords")
 
+    test_dataset_path_0 = Path("/home/lei/leo/code/data/train_data/testing_cwt.tfrecords")
+
     #_ = extract_train_data(data_path_0, str(dataset_path_0))
     #_ = extract_train_data(data_path_1, str(dataset_path_1))
     #_ = extract_train_data(data_path_2, str(dataset_path_2))
+
+    _ = extract_train_data(data_path_0, str(test_dataset_path_0), end=100, bin_width=10e-12, step_num=5000)

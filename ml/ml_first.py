@@ -22,7 +22,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod8 as MyModel  # KEY: fixes which model in models to train
+from models import Mod9 as MyModel  # KEY: fixes which model in models to train
 
 """
 TensorBoard:  (command line)
@@ -73,7 +73,7 @@ def parse_TFR_element(element):
  
     energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
     energy_share = tf.reshape(energy_share, shape=[3])  
-    energy_share = energy_share * 100
+    energy_share = energy_share * 1000
 
     primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
     primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
@@ -86,7 +86,8 @@ def parse_TFR_element(element):
 
     # Write function to map over and take the relevent variables
     #return (signal, (first_photon_time, total_energy, energy_share, primary_gamma_pos, process))  # [11] 234 8910
-    return (signal, (first_photon_time, total_energy, energy_share, process))  # [11] 234 8910
+    #return (signal, (first_photon_time, total_energy, energy_share, process))  # [11] 234 8910
+    return (signal, (energy_share, process))
 
 def get_dataset(filenames):
   dataset = tf.data.TFRecordDataset(filenames)
@@ -138,12 +139,18 @@ def group_target_shape(dataset):
                 "energy_share": target_element[2],
                 "primary_pos": target_element[3], 
                 "process": target_element[4]})
-        """
+        
         return ({"input": train_element},
                 {"first_photon_time": target_element[0], 
                 "total_energy": target_element[1],
                 "energy_share": target_element[2],
                 "process": target_element[3]})
+        """
+        return ({"input": train_element},
+                {"energy_share": target_element[0],
+                "process": target_element[1]})
+
+
     return dataset.map(group_target)
 
 def split_dataset(dataset, size, train_split=0.9, shuffle=True, shuffle_size=25000, predict_size=20):  
@@ -188,7 +195,7 @@ def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME
                     "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                     "process": tf.keras.metrics.CategoricalAccuracy()}
         )
-    """
+    
     model.compile(
         optimizer=adam, 
         loss = {"first_photon_time": tf.keras.losses.MeanSquaredError(), "total_energy": tf.keras.losses.MeanSquaredError(),
@@ -198,6 +205,15 @@ def train_model(train_set, model, steps_per_epoch, run_name, **kwargs):  # FIXME
         loss_weights = {"first_photon_time": 1, "total_energy": 1,
                         "energy_share": 1, "process": 4}
         )
+    """
+
+    model.compile(
+        optimizer=adam, 
+        loss = {"energy_share": tf.keras.losses.MeanSquaredError(), "process": tf.keras.losses.CategoricalCrossentropy()}, 
+        metrics = {"energy_share": tf.keras.metrics.MeanSquaredError(), "process": tf.keras.metrics.CategoricalAccuracy()},
+        loss_weights = {"energy_share": 1, "process": 10}
+        )
+
     logdir = log_path / run_name
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
     history = model.fit(train_set, epochs=epochs, verbose=2, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
@@ -286,8 +302,8 @@ def show_predictions(model, dataset, space_num=45, padding=20):
 
     predict_list = []
     #labels = ["first_photon_time", "total_energy", "energy_share", "primary_pos", "process"]
-    labels = ["first_photon_time", "total_energy", "energy_share", "process"]
-
+    #labels = ["first_photon_time", "total_energy", "energy_share", "process"]
+    labels = ["energy_share", "process"]
 
     for i in dataset:
         print("===================")

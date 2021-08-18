@@ -4,6 +4,7 @@ from models import ___ as MyModel
 (Use os)
 """
 
+from os import name
 import tensorflow as tf
 
 
@@ -734,3 +735,18 @@ class Mod8():
 
         return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
 
+
+class Mod9():
+
+    def __init__(self):
+        self.name = 'mod9_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
