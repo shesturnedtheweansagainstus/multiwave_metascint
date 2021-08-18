@@ -1,7 +1,7 @@
 """
 Try to rewrite ml_first in terms of objects
 """
-from leo.multiwave_metascint.ml.ml_first import get_dataset
+from textwrap import indent
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -86,7 +86,7 @@ class GetData:
         total_energy = tf.reshape(total_energy, shape=[1])
     
         energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
-        energy_share = tf.reshape(energy_share, shape=[3])  
+        energy_share = tf.reshape(energy_share, shape=[3]) * 100
 
         primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
         primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
@@ -144,20 +144,24 @@ class BaseTrain():
         self.name = Model.name
         self.targets = find_output_names(model)  # in the order of the model's outputs in its construction
         self.dataset = Getdata.get_dataset()
-        self.dataset_size = Getdata.size()
+        self.dataset_size = Getdata.get_size()
         self.model = model
         self.losses = {key:self.losses[key] for key in self.losses.keys() if key in self.targets}
         self.metrics = {key:self.metrics[key] for key in self.metrics.keys() if key in self.targets}
     
-    def get_train_set(self, train_split=0.9, seed=None, shuffle_size=25000, predict_size=20):
+    def get_train_set(self, factors, train_split=0.9, seed=None, shuffle_size=25000, predict_size=20):
         """
         Selects from the plain dataset which variables
         to use and returns the dataset split.
+        Factors gives which units to use
         """
         assert train_split < 1
         def group_target(train_element, target_element):
             return ({"input": train_element},
-                    {key:target_element[key] for key in self.targets})
+                    {key:target_element[key] * factors[self.targets.index(key)] for key in self.targets})
+        def group_pred(train_element, target_element):
+            return (train_element,
+                   tuple([target_element[key] * factors[self.targets.index(key)] for key in self.targets]))
 
         dataset = self.dataset.shuffle(shuffle_size, seed=seed)
         train_size = int(train_split * self.dataset_size)
@@ -167,6 +171,7 @@ class BaseTrain():
 
         train_set = train_set.map(group_target).repeat()
         test_set = test_set.map(group_target).batch(1)
+        predict_set = predict_set.map(group_pred)
 
         return train_set, test_set, predict_set
 
@@ -228,6 +233,7 @@ class BaseTrain():
         with open(text_path / _, "w") as f:
             with redirect_stdout(f):
                 print(f"Model Version: {self.name}")
+                print(f"Dataset Size: {self.dataset_size}")
                 print("Predictions:\n")
                 _ = self.show_predictions(predict_set)
                 print(f"\n\n{self.model.summary()}\n")
@@ -262,6 +268,6 @@ if __name__ == '__main__':
         Getdata = GetData(filenames)
         Model = MyModel()
         Basetrain = BaseTrain(Model, Getdata)
-        train_set, test_set, predict_set = Basetrain.get_train_set()
+        train_set, test_set, predict_set = Basetrain.get_train_set([100, 1])
 
         _ = Basetrain.train_model(train_set, test_set, predict_set, **i)

@@ -749,3 +749,18 @@ class Mod9():
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod10():
+
+    def __init__(self):
+        self.name = 'mod10_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
