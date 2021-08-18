@@ -748,5 +748,4 @@ class Mod9():
         energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
-
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
