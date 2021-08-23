@@ -288,6 +288,11 @@ if __name__ == '__main__':
 
     test_dataset_path_0 = Path("/home/lei/leo/code/data/train_data/testing_cwt.tfrecords")
 
+
+    #data_path_3 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-13_21:54:24.csv")
+    #dataset_path_3 = Path("/home/lei/leo/code/data/train_data/train_type_2_2021-08-13_21:54:24.tfrecords")
+
+
     #_ = extract_train_data(data_path_0, str(dataset_path_0))
     #_ = extract_train_data(data_path_1, str(dataset_path_1))
     #_ = extract_train_data(data_path_2, str(dataset_path_2))

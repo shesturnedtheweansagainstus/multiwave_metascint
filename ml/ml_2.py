@@ -11,6 +11,7 @@ from pathlib import Path
 from tensorflow._api.v2 import data
 from tensorflow.keras import losses
 from tensorflow.python.framework.op_def_registry import get
+from tensorflow.python.keras import models
 from tensorflow.python.keras.engine import input_layer
 from tensorflow.python.ops.gen_array_ops import size
 from tensorflow.python.ops.gen_math_ops import log, sign
@@ -27,7 +28,8 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod9 as MyModel  # KEY: fixes which model in models to train
+from models import Mod11c as MyModel  # KEY: fixes which model in models to train
+
 
 
 # Helper functions
@@ -86,7 +88,7 @@ class GetData:
         total_energy = tf.reshape(total_energy, shape=[1])
     
         energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
-        energy_share = tf.reshape(energy_share, shape=[3]) * 100
+        energy_share = tf.reshape(energy_share, shape=[3])
 
         primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
         primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
@@ -203,7 +205,7 @@ class BaseTrain():
 
     def train_model(self, train_set, test_set, predict_set, **kwargs):
         """
-        takes in kwargs to compile and train - uses tesnroboard.
+        takes in kwargs to compile and train - uses tensorboard.
         Feed in epochs, batchsize, weights, adam settings,
         """
 
@@ -260,14 +262,22 @@ if __name__ == '__main__':
 
     hyper_parameters = [
         {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, 
-        "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":20,
-        "batchsize":128, "weights":[1,1e4]}
-        ]
+        "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":25,
+        "batchsize":128, "weights":[1,5e3]}
+    ]
 
     for i in hyper_parameters:
         Getdata = GetData(filenames)
         Model = MyModel()
+        print(f"MODEL:  {Model.name}")
         Basetrain = BaseTrain(Model, Getdata)
-        train_set, test_set, predict_set = Basetrain.get_train_set([100, 1])
+        train_set, test_set, predict_set = Basetrain.get_train_set([1e3, 1])
 
         _ = Basetrain.train_model(train_set, test_set, predict_set, **i)
+
+
+"""
+Test which model is the best, then optimize for hyper_parameters by random grid search: structures a narrative.
+
+Mind the weights for process
+"""

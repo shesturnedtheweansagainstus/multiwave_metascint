@@ -7,6 +7,20 @@ from models import ___ as MyModel
 from os import name
 import tensorflow as tf
 
+"""
+mod11_2021-08-23_14\:44\:38.txt 
+mod11a_2021-08-23_15:03:28.txt
+
+mod11d_2021-08-23_15:40:41.txt
+mod11c_2021-08-23_15:36:22.txt
+
+mod11i_2021-08-23_15:57:13.txt
+
+mod9a_2021-08-23_16:05:24.txt
+
+Tune these models with random grid search and write
+"""
+
 
 class Mod1():  
     
@@ -679,11 +693,9 @@ class Mod8():
         input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
 
         stream_one = tf.keras.layers.Conv1D(8, 4, kernel_regularizer="l2")(input)
-        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
         stream_one = tf.keras.layers.Activation('relu')(stream_one)
 
         stream_two = tf.keras.layers.Conv1D(8, 16, kernel_regularizer="l2")(input)
-        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
         stream_two = tf.keras.layers.Activation('relu')(stream_two)
 
         stream_one = tf.keras.layers.MaxPool1D(pool_size=4, strides=1)(stream_one)   
@@ -693,11 +705,9 @@ class Mod8():
         stream_two = tf.keras.layers.Dropout(0.5)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_one)
-        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
         stream_one = tf.keras.layers.Activation('relu')(stream_one)
 
         stream_two = tf.keras.layers.Conv1D(4, 4, kernel_regularizer="l2")(stream_two)
-        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
         stream_two = tf.keras.layers.Activation('relu')(stream_two)
 
         stream_one = tf.keras.layers.Dropout(0.5)(stream_one)
@@ -707,11 +717,9 @@ class Mod8():
         stream_two = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_two)
 
         stream_one = tf.keras.layers.Conv1D(2, 4, kernel_regularizer="l2")(stream_one)
-        stream_one = tf.keras.layers.BatchNormalization()(stream_one)  #axis=-1
         stream_one = tf.keras.layers.Activation('relu')(stream_one)
 
         stream_two = tf.keras.layers.Conv1D(2, 4, kernel_regularizer="l2")(stream_two)
-        stream_two = tf.keras.layers.BatchNormalization()(stream_two)  #axis=-1
         stream_two = tf.keras.layers.Activation('relu')(stream_two)
 
         stream_one = tf.keras.layers.MaxPool1D(pool_size=8, strides=2)(stream_one)  
@@ -728,12 +736,10 @@ class Mod8():
         out = tf.keras.layers.Dropout(0.4)(out)
         out = tf.keras.layers.Dense(128, activation="relu", kernel_regularizer="l2")(out)
 
-        first_photon_time = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="first_photon_time")(out)
-        total_energy = tf.keras.layers.Dense(1, activation="relu", kernel_regularizer='l2', name="total_energy")(out)
         energy_share = tf.keras.layers.Dense(3, activation="relu", kernel_regularizer='l2', name="energy_share")(out)
         process = tf.keras.layers.Dense(2, activation="softmax", name="process")(out)
 
-        return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, process])
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
 
 class Mod9():
@@ -750,6 +756,23 @@ class Mod9():
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
+
+class Mod9a():
+
+    def __init__(self):
+        self.name = 'mod9a_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
 class Mod10():
 
     def __init__(self):
@@ -764,3 +787,319 @@ class Mod10():
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod11():
+
+    def __init__(self):
+        self.name = 'mod11_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        #out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11a():
+
+    def __init__(self):
+        self.name = 'mod11a_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod11b():
+
+    def __init__(self):
+        self.name = 'mod11b_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11c():
+
+    def __init__(self):
+        self.name = 'mod11c_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod11d():
+
+    def __init__(self):
+        self.name = 'mod11d_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11e():
+
+    def __init__(self):
+        self.name = 'mod11e_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11f():
+
+    def __init__(self):
+        self.name = 'mod11f_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11g():
+
+    def __init__(self):
+        self.name = 'mod11g_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer='l2')(out) 
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11h():
+
+    def __init__(self):
+        self.name = 'mod11h_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod11i():
+
+    def __init__(self):
+        self.name = 'mod11i_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.05)(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+
+
+class Mod12():
+
+    def __init__(self):
+        self.name = 'mod12_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class Mod13():
+
+    def __init__(self):
+        self.name = 'mod13_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod14():
+
+    def __init__(self):
+        self.name = 'mod14_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod14a():
+
+    def __init__(self):
+        self.name = 'mod14a_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dropout(0.07)(out)
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+class Mod15():
+
+    def __init__(self):
+        self.name = 'mod15_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+
+        first_photon_time = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='first_photon_time')(out)
+        total_energy = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='total_energy')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        primary_pos = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='primary_pos')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
+
+
+class Mod16():
+
+    def __init__(self):
+        self.name = 'mod16_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(0.5)(out)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+
+        first_photon_time = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='first_photon_time')(out)
+        total_energy = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='total_energy')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        primary_pos = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='primary_pos')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
+
+
+class Mod17():
+
+    def __init__(self):
+        self.name = 'mod17_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+
+        first_photon_time = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='first_photon_time')(out)
+        total_energy = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='total_energy')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        primary_pos = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='primary_pos')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[first_photon_time, total_energy, energy_share, primary_pos, process])
+
