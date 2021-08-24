@@ -6,6 +6,7 @@ from models import ___ as MyModel
 
 from os import name
 import tensorflow as tf
+import keras_tuner as kt
 
 """
 mod11_2021-08-23_14\:44\:38.txt 
@@ -20,6 +21,43 @@ mod9a_2021-08-23_16:05:24.txt
 
 Tune these models with random grid search and write
 """
+
+
+class ModA():
+
+    def __init__(self):
+        self.name = 'modA_'
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
+
+class ModB():
+
+    def __init__(self, **kwargs):
+        self.name = 'modB_'
+        self.kwargs = kwargs
+
+    def model(self):
+        input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
+        out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dense(1028, activation='relu', kernel_regularizer='l2')(out)
+        out = tf.keras.layers.Dropout(self.kwargs['dropout'])(out)
+        out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
+        out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
+        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+
+        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
 
 class Mod1():  
@@ -788,6 +826,7 @@ class Mod10():
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
+
 class Mod11():
 
     def __init__(self):
@@ -821,6 +860,7 @@ class Mod11a():
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
 
 class Mod11b():
 
@@ -856,6 +896,7 @@ class Mod11c():
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
 
 class Mod11d():
 
@@ -975,8 +1016,6 @@ class Mod11i():
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
 
-
-
 class Mod12():
 
     def __init__(self):
@@ -1012,6 +1051,7 @@ class Mod13():
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
+
 class Mod14():
 
     def __init__(self):
@@ -1029,6 +1069,7 @@ class Mod14():
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
 
+
 class Mod14a():
 
     def __init__(self):
@@ -1043,6 +1084,7 @@ class Mod14a():
         process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
         return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+
 
 class Mod15():
 

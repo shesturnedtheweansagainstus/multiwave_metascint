@@ -13,9 +13,11 @@ from tensorflow.keras import losses
 from tensorflow.python.framework.op_def_registry import get
 from tensorflow.python.keras import models
 from tensorflow.python.keras.engine import input_layer
+from tensorflow.python.keras.layers.core import Dropout
 from tensorflow.python.ops.gen_array_ops import size
 from tensorflow.python.ops.gen_math_ops import log, sign
 import tensorflow as tf
+import keras_tuner as kt
 import tensorboard
 
 import pickle
@@ -89,6 +91,7 @@ class GetData:
     
         energy_share = tf.io.parse_tensor(data["energy_share"], out_type=tf.float64)  
         energy_share = tf.reshape(energy_share, shape=[3])
+        energy_share = energy_share / total_energy 
 
         primary_gamma_pos = tf.io.parse_tensor(data["primary_gamma_pos"], out_type=tf.float64)
         primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
@@ -212,6 +215,7 @@ class BaseTrain():
         epochs = kwargs.pop("epochs")
         batchsize = kwargs.pop("batchsize")
         weights = kwargs.pop("weights")  # list
+        dropout = kwargs.pop("dropout")
         steps_per_epoch = (self.dataset_size // batchsize) + 1
         adam = tf.keras.optimizers.Adam(**kwargs)
 
@@ -229,7 +233,8 @@ class BaseTrain():
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1)
         history = self.model.fit(train_set, epochs=epochs, verbose=2, steps_per_epoch=steps_per_epoch, callbacks=[tensorboard_callback])
         eval_data = self.model.evaluate(test_set)
-        self.model.save(weights_path)
+        weights_name = self.name + ".h5"
+        self.model.save(weights_path / weights_name)
 
         _ = run_name + ".txt"
         with open(text_path / _, "w") as f:
@@ -240,6 +245,7 @@ class BaseTrain():
                 _ = self.show_predictions(predict_set)
                 print(f"\n\n{self.model.summary()}\n")
                 print(f"\n\nHyperparameters: {kwargs}\n")
+                print(f"\n\nEpochs: {epochs}; Batchsize: {batchsize}; Weights: {weights}; Dropout: {dropout}")
                 print(f"\n\nHistory: {history.history}\n")
                 print(f"\n\n Display Labels: {self.model.metrics_names}")
                 print(f"\n\nEval Data: {eval_data}\n")
@@ -260,10 +266,15 @@ if __name__ == '__main__':
     image_path = Path("/home/lei/leo/code/data/images")
     text_path = Path("/home/lei/leo/code/data/text")
 
+    hyper_parameters_ranges = {
+        "learning_rate":[0.00025, 0.01], "beta_1":[0.85, 0.95], "beta_2":[0.995, 0.9999], 
+        "epsilon":[9e-05, 2e-4], "dropout":[0.025, 0.075]
+        }
+
     hyper_parameters = [
         {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, 
-        "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":25,
-        "batchsize":128, "weights":[1,5e3]}
+        "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":80,
+        "batchsize":128, "weights":[1,5e3], "dropout":0.05}
     ]
 
     for i in hyper_parameters:
@@ -271,7 +282,7 @@ if __name__ == '__main__':
         Model = MyModel()
         print(f"MODEL:  {Model.name}")
         Basetrain = BaseTrain(Model, Getdata)
-        train_set, test_set, predict_set = Basetrain.get_train_set([1e3, 1])
+        train_set, test_set, predict_set = Basetrain.get_train_set([1e2, 1])
 
         _ = Basetrain.train_model(train_set, test_set, predict_set, **i)
 
@@ -279,5 +290,5 @@ if __name__ == '__main__':
 """
 Test which model is the best, then optimize for hyper_parameters by random grid search: structures a narrative.
 
-Mind the weights for process
+Mind the weights for process TODO: changed to percentages
 """
