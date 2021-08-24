@@ -340,12 +340,12 @@ if __name__ == '__main__':
 
     # Model validation
     data_path_3 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-24_01:21:42.csv")
-    dataset_path_3 = Path("/home/lei/leo/code/data/eval_data/train_type_2_2021-08-24_01:21:42.tfrecords")
+    dataset_path_3 = Path("/home/lei/leo/code/data/val_data/train_type_2_2021-08-24_01:21:42.tfrecords")
 
 
-    _ = extract_train_data(data_path_0, str(dataset_path_0))
-    _ = extract_train_data(data_path_1, str(dataset_path_1))
-    _ = extract_train_data(data_path_2, str(dataset_path_2))
+    #_ = extract_train_data(data_path_0, str(dataset_path_0))
+    #_ = extract_train_data(data_path_1, str(dataset_path_1))
+    #_ = extract_train_data(data_path_2, str(dataset_path_2))
     _ = extract_train_data(data_path_3, str(dataset_path_3))
 
     #_ = extract_train_data(data_path_0, str(test_dataset_path_0), end=100, bin_width=10e-12, step_num=5000)
