@@ -30,7 +30,7 @@ import metascint.ray_tracing.python.timing_model as tm
 import metascint.ray_tracing.python.circuit_signal as cs
 
 os.chdir("/home/lei/leo/code/ml")
-from models import Mod11c as MyModel  # KEY: fixes which model in models to train
+from models import ModA as MyModel  # KEY: fixes which model in models to train
 
 
 
@@ -97,7 +97,7 @@ class GetData:
         primary_gamma_pos = tf.reshape(primary_gamma_pos, shape=[3])
 
         process = tf.io.parse_tensor(data["process"], out_type=tf.int64)
-        process = tf.reshape(process, shape=[2])
+        process = tf.reshape(process, shape=[3])
         process = tf.cast(process, tf.float64)
 
         return (signal, {"first_photon_time": first_photon_time, 
@@ -138,7 +138,7 @@ class BaseTrain():
                "energy_share": tf.keras.metrics.MeanSquaredError(), "primary_pos": tf.keras.metrics.MeanSquaredError(), 
                "process": tf.keras.metrics.CategoricalAccuracy()}
 
-    def __init__(self, Model, Getdata):
+    def __init__(self, Model, Getdata, Valdata):
         """
         Records the model's name, which target variables
         (in list) to pick
@@ -150,6 +150,7 @@ class BaseTrain():
         self.targets = find_output_names(model)  # in the order of the model's outputs in its construction
         self.dataset = Getdata.get_dataset()
         self.dataset_size = Getdata.get_size()
+        self.valdataset = Valdata.get_dataset()
         self.model = model
         self.losses = {key:self.losses[key] for key in self.losses.keys() if key in self.targets}
         self.metrics = {key:self.metrics[key] for key in self.metrics.keys() if key in self.targets}
@@ -177,8 +178,9 @@ class BaseTrain():
         train_set = train_set.map(group_target).repeat()
         test_set = test_set.map(group_target).batch(1)
         predict_set = predict_set.map(group_pred)
+        valdataset = self.valdataset.map(group_target).batch(1)
 
-        return train_set, test_set, predict_set
+        return train_set, test_set, predict_set, valdataset
 
     def show_predictions(self, predict_set, space_num=45, padding=20):
         """
@@ -206,7 +208,7 @@ class BaseTrain():
 
         return predict_list
 
-    def train_model(self, train_set, test_set, predict_set, **kwargs):
+    def train_model(self, train_set, test_set, predict_set, valdataset, **kwargs):
         """
         takes in kwargs to compile and train - uses tensorboard.
         Feed in epochs, batchsize, weights, adam settings,
@@ -215,7 +217,6 @@ class BaseTrain():
         epochs = kwargs.pop("epochs")
         batchsize = kwargs.pop("batchsize")
         weights = kwargs.pop("weights")  # list
-        dropout = kwargs.pop("dropout")
         steps_per_epoch = (self.dataset_size // batchsize) + 1
         adam = tf.keras.optimizers.Adam(**kwargs)
 
@@ -225,7 +226,7 @@ class BaseTrain():
         optimizer=adam, 
         loss = self.losses, 
         metrics = self.metrics,
-        loss_weights = {self.targets[i]: weights[i] for i in range(len(weights))}  # do weights
+        loss_weights = {self.targets[i]: weights[i] for i in range(len(weights))}  # in order of targets
         )
 
         run_name = self.name + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
@@ -235,6 +236,9 @@ class BaseTrain():
         eval_data = self.model.evaluate(test_set)
         weights_name = self.name + ".h5"
         self.model.save(weights_path / weights_name)
+
+        print("On validation data")
+        val_data = self.model.evaluate(test_set)
 
         _ = run_name + ".txt"
         with open(text_path / _, "w") as f:
@@ -249,18 +253,20 @@ class BaseTrain():
                 print(f"\n\nHistory: {history.history}\n")
                 print(f"\n\n Display Labels: {self.model.metrics_names}")
                 print(f"\n\nEval Data: {eval_data}\n")
+                print(f"\n\nVal Data: {val_data}\n")
 
         return history
 
 
-
 if __name__ == '__main__':
 
-    filenames = ["/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
-                     "/home/lei/leo/code/data/train_data/train_metascint_type_2_2021-08-11_17:23:00.tfrecords",
-                     "/home/lei/leo/code/data/train_data/train_type_2_2021-08-13_21:54:24.tfrecords"]
+    filenames = ["/home/lei/leo/code/data/new_train_data/new_train_metascint_type_2_2021-06-17_11:21:17.tfrecords", 
+                 "/home/lei/leo/code/data/new_train_data/new_train_metascint_type_2_2021-08-11_17:23:00.tfrecords",
+                 "/home/lei/leo/code/data/new_train_data/new_train_type_2_2021-08-13_21:54:24.tfrecords"]
+    
+    val_filenames = ['/home/lei/leo/code/data/val_data/train_type_2_2021-08-24_01:21:42.tfrecords']
 
-    weights_path = Path("/home/lei/leo/code/data/saved_weights/mymodel.h5")  # FIXME: alter with different models
+    weights_path = Path("/home/lei/leo/code/data/saved_weights")  # FIXME: alter with different models
     pickle_path = Path("/home/lei/leo/code/data/misc/out_data")
     log_path = Path("/home/lei/leo/code/data/logs/fit")
     image_path = Path("/home/lei/leo/code/data/images")
@@ -272,19 +278,24 @@ if __name__ == '__main__':
         }
 
     hyper_parameters = [
-        {"learning_rate":0.0005, "beta_1":0.9, "beta_2":0.999, 
-        "epsilon":1e-04, "amsgrad":False, "name":"adam", "epochs":80,
-        "batchsize":128, "weights":[1,5e3], "dropout":0.05}
+        {"learning_rate":0.014127161702417554, "beta_1":0.9, "beta_2":0.999499999999999, 
+        "epsilon":1e-08, "amsgrad":False, "name":"adam", "epochs":70,
+        "batchsize":128, "weights":[1, 1, 8e2]}
     ]
+
+    model_hps = {
+        "dropout":0.02, "units":64
+    }
 
     for i in hyper_parameters:
         Getdata = GetData(filenames)
-        Model = MyModel()
+        Valdata = GetData(val_filenames)
+        Model = MyModel(**model_hps)
         print(f"MODEL:  {Model.name}")
-        Basetrain = BaseTrain(Model, Getdata)
-        train_set, test_set, predict_set = Basetrain.get_train_set([1e2, 1])
+        Basetrain = BaseTrain(Model, Getdata, Valdata)
+        train_set, test_set, predict_set, valdataset = Basetrain.get_train_set([1e2, 1e2, 1])
 
-        _ = Basetrain.train_model(train_set, test_set, predict_set, **i)
+        _ = Basetrain.train_model(train_set, test_set, predict_set, valdataset, **i)
 
 
 """

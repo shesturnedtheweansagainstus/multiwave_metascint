@@ -240,15 +240,6 @@ def extract_target(hits:dp.HitsData):
     0->Others, 1-> Plastic, 2->Crystal,
 
     0->only one PhotoElectric, 1->Compton with photo, 2->only Compton
-
-    should package them all up then choose which ones in the tf.dataset
-    """
-
-    """
-    if hits.photon_hits.shape[0] == 0:
-        return None
-    if hits.hits[hits.hits["parentID"] == 0].shape == 0:
-        return None
     """
 
     first_photon_time = np.array([
@@ -269,7 +260,7 @@ def extract_target(hits:dp.HitsData):
         hits.hits["parentID"] == 0
     ].sort_values("time").iloc[0][["posX", "posY", "posZ"]], dtype=np.float64)  
 
-    processes = set(hits.hits[hits.hits["parentID"] == 0]["processName"].unique())
+    processes = set(hits.hits[hits.hits["parentID"] == 0]["processName"].unique())  #FIXME: use trackID == 1??
     processes.discard("RayleighScattering")
     if processes == set(["PhotoElectric"]):
         process = np.array([1, 0, 0])
@@ -325,27 +316,27 @@ def extract_train_data(data_path, dataset_path, end=25000, bin_width=100e-12, st
     print(f"Wrote {count} elements to TFRecord")
     return count
 
+
 if __name__ == '__main__':
     #test_dataset_path_0 = Path("/home/lei/leo/code/data/train_data/testing_cwt.tfrecords")
     
     # {'PhotoElectric': 2072, 'Compton': 5004, 'RayleighScattering': 342} and proportion of compton is 0.67457535723
-    data_path_0 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-06-17_11:21:17.csv")  
+    data_path_0 = Path("/data/simulations/leo_gate/metascint_type_2_2021-06-17_11:21:17.csv")  
     dataset_path_0 = Path("/home/lei/leo/code/data/new_train_data/new_train_metascint_type_2_2021-06-17_11:21:17.tfrecords")
 
-    data_path_1 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-11_17:23:00.csv")
+    data_path_1 = Path("/data/simulations/leo_gate/metascint_type_2_2021-08-11_17:23:00.csv")
     dataset_path_1 = Path("/home/lei/leo/code/data/new_train_data/new_train_metascint_type_2_2021-08-11_17:23:00.tfrecords")
 
-    data_path_2 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-13_21:54:24.csv")
+    data_path_2 = Path("/data/simulations/leo_gate/metascint_type_2_2021-08-13_21:54:24.csv")
     dataset_path_2 = Path("/home/lei/leo/code/data/new_train_data/new_train_type_2_2021-08-13_21:54:24.tfrecords")
 
     # Model validation
-    data_path_3 = Path("/home/lei/leo/metascint_gvanode/output/metascint_type_2_2021-08-24_01:21:42.csv")
+    data_path_3 = Path("/data/simulations/leo_gate/metascint_type_2_2021-08-24_01:21:42.csv")
     dataset_path_3 = Path("/home/lei/leo/code/data/val_data/train_type_2_2021-08-24_01:21:42.tfrecords")
-
 
     #_ = extract_train_data(data_path_0, str(dataset_path_0))
     #_ = extract_train_data(data_path_1, str(dataset_path_1))
     #_ = extract_train_data(data_path_2, str(dataset_path_2))
-    _ = extract_train_data(data_path_3, str(dataset_path_3))
+    #_ = extract_train_data(data_path_3, str(dataset_path_3))
 
     #_ = extract_train_data(data_path_0, str(test_dataset_path_0), end=100, bin_width=10e-12, step_num=5000)

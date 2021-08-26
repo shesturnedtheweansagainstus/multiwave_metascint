@@ -25,18 +25,20 @@ Tune these models with random grid search and write
 
 class ModA():
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.name = 'modA_'
+        self.kwargs = kwargs
 
     def model(self):
         input = tf.keras.Input(shape=(2510, 1), name="input")  # (batch, 2510, 1) 
         out = tf.keras.layers.Flatten()(input)
+        out = tf.keras.layers.Dense(self.kwargs['units'], activation='relu', kernel_regularizer='l2')(out)
         out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
-        out = tf.keras.layers.Dense(100, activation='relu', kernel_regularizer='l2')(out)
+        total_energy = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='total_energy')(out)
         energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
-        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+        process = tf.keras.layers.Dense(3, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
-        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+        return tf.keras.Model(inputs=[input], outputs=[total_energy, energy_share, process])
 
 
 class ModB():
@@ -54,10 +56,11 @@ class ModB():
         out = tf.keras.layers.Dense(512, activation='relu', kernel_regularizer='l2')(out) 
         out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out) 
         out = tf.keras.layers.Dense(128, activation='relu', kernel_regularizer='l2')(out)
+        total_energy = tf.keras.layers.Dense(1, activation='relu', kernel_regularizer='l2', name='total_energy')(out)
         energy_share = tf.keras.layers.Dense(3, activation='relu', kernel_regularizer='l2', name='energy_share')(out)
-        process = tf.keras.layers.Dense(2, activation='softmax', kernel_regularizer='l2', name='process')(out)
+        process = tf.keras.layers.Dense(3, activation='softmax', kernel_regularizer='l2', name='process')(out)
 
-        return tf.keras.Model(inputs=[input], outputs=[energy_share, process])
+        return tf.keras.Model(inputs=[input], outputs=[total_energy, energy_share, process])
 
 
 class Mod1():  
